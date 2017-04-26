@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.androidandyuk.kitchentimer.MainActivity">
+
+    <GridLayout
+        android:id="@+id/mainGrid"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:columnCount="4"
+        android:rowCount="8"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <ListView
+            android:id="@+id/itemListView"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_column="0"
+            android:layout_columnSpan="3"
+            android:layout_row="0" />
+
+        <TextView
+            android:id="@+id/Instructions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_columnSpan="3"
+            android:layout_row="1"
+            android:text="Enter details of item to add to you timer list below. Enter the times in seconds. The finish by refers to if you need an item to finish before the end, again in seconds." />
+
+        <EditText
+            android:id="@+id/itemName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_row="2"
+            android:ems="10"
+            android:hint="Item to add"
+            android:inputType="textPersonName" />
+
+        <EditText
+            android:id="@+id/itemTime"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_row="3"
+            android:ems="10"
+            android:hint="Time in seconds"
+            android:inputType="time"
+            android:nextFocusDown="@+id/finishTime"
+            android:nextFocusForward="@+id/finishTime"
+            android:nextFocusRight="@+id/finishTime" />
+
+        <EditText
+            android:id="@+id/finishTime"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_row="4"
+            android:ems="10"
+            android:hint="Seconds it needs to finish by"
+            android:inputType="time" />
+
+        <Button
+            android:id="@+id/addItem"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_margin="32dp"
+            android:layout_marginTop="0dp"
+            android:layout_row="3"
+            android:layout_rowSpan="2"
+            android:onClick="addItem"
+            android:text="Add" />
+
+        <Button
+            android:id="@+id/timerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_margin="32dp"
+            android:layout_marginTop="16dp"
+            android:layout_row="4"
+            android:layout_rowSpan="1"
+            android:text="Start Timer" />
+
+
+    </GridLayout>
+</android.support.constraint.ConstraintLayout>
