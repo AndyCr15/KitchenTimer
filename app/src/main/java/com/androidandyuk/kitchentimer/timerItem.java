@@ -4,21 +4,23 @@ package com.androidandyuk.kitchentimer;
  * Created by AndyCr15 on 26/04/2017.
  */
 
-public class timerItem {
+public class timerItem implements Comparable<timerItem> {
     String name;
     int seconds;
     int finishBy;
+    int totalTime;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
         this.seconds = seconds;
         this.finishBy = finishBy;
+        this.totalTime = seconds + finishBy;
     }
 
     @Override
     public String toString() {
         if (finishBy>0) {
-            return "" + name + " for " + timeInMinutes(seconds) + " minutes, to be finished by " + timeInMinutes(finishBy);
+            return "" + name + " for " + timeInMinutes(seconds) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
         } else {
             return "" + name + " for " + timeInMinutes(seconds) + " minutes";
         }
@@ -55,5 +57,29 @@ public class timerItem {
 
     public void setFinishBy(int finishBy) {
         this.finishBy = finishBy;
+    }
+
+    public int getTotalTime() {
+        return totalTime;
+    }
+
+    public void setTotalTime(int totalTime) {
+        this.totalTime = totalTime;
+    }
+
+    @Override
+    public int compareTo(timerItem o) {
+
+        // negative means the incoming is greater, positive means the this is greater
+
+        return this.totalTime - o.totalTime;
+
+//        if(this.totalTime > o.totalTime) {
+//            return 1;
+//        } else if (this.totalTime > o.totalTime) {
+//            return -1;
+//        }
+//
+//        return 0;
     }
 }
