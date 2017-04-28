@@ -1,6 +1,7 @@
 package com.androidandyuk.kitchentimer;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
@@ -27,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
     boolean timerIsActive = false;
     Button timerButton;
     CountDownTimer countDownTimer;
+    MediaPlayer mplayer;
+
 
     public void timerButtonPressed(View view) {
 
@@ -36,7 +39,10 @@ public class MainActivity extends AppCompatActivity {
             timerButton.setText("Start Timer");
             timerIsActive = false;
             resetTimer();
-        } else {
+            for (timerItem item : itemList){
+                item.secondsLeft = item.seconds + item.finishBy;
+            }
+        } else if(itemList.size() > 0){
             //code if timer is not running
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
             Log.i("Starting Timer", "Longest time is " + (itemList.get(itemList.size() - 1)).getTotalTime());
@@ -44,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
             timerIsActive = true;
             timerButton.setText("Stop");
             startTimer(longestTimer);
+        } else {
+            Toast.makeText(MainActivity.this, "You need to add some items", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -58,12 +66,31 @@ public class MainActivity extends AppCompatActivity {
 
                 timerButton.setText(timeInMinutes((int) millisUntilFinished / 1000));
 
+                // for each item in the list, drop a second off it's time left
+                for (timerItem item : itemList) {
+                    // check if any new timers need to start
+                    if (millisUntilFinished / 1000 == item.totalTime){
+                        //start a new timer up
+                        itemTimerStart("Put " + item.getName() + " in for " + timeInMinutes(item.seconds));
+                    }
+                    if (millisUntilFinished / 1000 <= item.totalTime) {
+                        item.secondsLeft--;
+                        // check if an item is ready
+                        if (item.secondsLeft <= 0) {
+                            // what to do when an item is ready
+                            soundAlarm("Remove " + item.getName());
+                            itemList.remove(item);
+                            break;
+                        }
+                    }
+                }
+                sortMyList();
             }
 
             @Override
             public void onFinish() {
 
-                // actiojn to take on end of alarm
+                // action to take on end of alarm
                 Toast.makeText(MainActivity.this, "Times up!", Toast.LENGTH_LONG).show();
                 resetTimer();
 
@@ -72,11 +99,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void itemTimerStart(String message) {
+        //change the toast for a dismissable message
+        Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_LONG).show();
+        // play alarm sound
+        mplayer = MediaPlayer.create(this, R.raw.alarm);
+        mplayer.start();
+    }
+
+    public void soundAlarm(String message) {
+        Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_SHORT).show();
+        // play alarm sound
+        mplayer = MediaPlayer.create(this, R.raw.siren);
+        mplayer.start();
+    }
+
+
     public void resetTimer() {
 
         timerButton.setText("Start Timer");
         countDownTimer.cancel();
         timerIsActive = false;
+        sortMyList();
 
     }
 
@@ -120,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
             timerItem next = new timerItem(itemName.getText().toString(), seconds, finish);
             itemList.add(next);
 
+            // reset the add item text boxes
             itemName.setText(null);
             itemTime.setText(null);
             itemFinish.setText(null);
@@ -135,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
         sortMyList();
     }
 
-    public void sortMyList(){
+    public void sortMyList() {
         Collections.sort(itemList);
         ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
 

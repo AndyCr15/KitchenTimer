@@ -9,30 +9,40 @@ public class timerItem implements Comparable<timerItem> {
     int seconds;
     int finishBy;
     int totalTime;
+    int secondsLeft;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
         this.seconds = seconds;
         this.finishBy = finishBy;
         this.totalTime = seconds + finishBy;
+        this.secondsLeft = seconds;
     }
 
     @Override
     public String toString() {
-        if (finishBy>0) {
-            return "" + name + " for " + timeInMinutes(seconds) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
+        if (finishBy > 0) {
+            return "" + name + " for " + timeInMinutes(secondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
         } else {
-            return "" + name + " for " + timeInMinutes(seconds) + " minutes";
+            return "" + name + " for " + timeInMinutes(secondsLeft) + " minutes";
         }
     }
 
     public String timeInMinutes(int seconds) {
         String mins = Integer.toString(seconds / 60);
         String secs = Integer.toString(seconds % 60);
-        if(secs.length()<2){
+        if (secs.length() < 2) {
             secs = "0" + secs;
         }
         return mins + ":" + secs;
+    }
+
+    public int getSecondsLeft() {
+        return secondsLeft;
+    }
+
+    public void setSecondsLeft(int secondsLeft) {
+        this.secondsLeft = secondsLeft;
     }
 
     public String getName() {
