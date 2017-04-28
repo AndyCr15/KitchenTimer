@@ -14,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ public class MainActivity extends AppCompatActivity {
     Button timerButton;
     CountDownTimer countDownTimer;
     MediaPlayer mplayer;
+    //the add item layout is not showing to begin with
+    boolean showingAddItem = false;
 
 
     public void timerButtonPressed(View view) {
@@ -39,10 +42,10 @@ public class MainActivity extends AppCompatActivity {
             timerButton.setText("Start Timer");
             timerIsActive = false;
             resetTimer();
-            for (timerItem item : itemList){
+            for (timerItem item : itemList) {
                 item.secondsLeft = item.seconds + item.finishBy;
             }
-        } else if(itemList.size() > 0){
+        } else if (itemList.size() > 0) {
             //code if timer is not running
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
             Log.i("Starting Timer", "Longest time is " + (itemList.get(itemList.size() - 1)).getTotalTime());
@@ -58,7 +61,8 @@ public class MainActivity extends AppCompatActivity {
     public void startTimer(int seconds) {
 
         Log.i("Timer started : ", "" + Integer.valueOf(seconds));
-        Toast.makeText(MainActivity.this, "Timer started : " + timeInMinutes(seconds), Toast.LENGTH_SHORT).show();
+        soundAlarm("Timer started : " + timeInMinutes(seconds), 0);
+
         countDownTimer = new CountDownTimer(seconds * 1000 + 100, 1000) {
 
             @Override
@@ -69,16 +73,20 @@ public class MainActivity extends AppCompatActivity {
                 // for each item in the list, drop a second off it's time left
                 for (timerItem item : itemList) {
                     // check if any new timers need to start
-                    if (millisUntilFinished / 1000 == item.totalTime){
+                    if (millisUntilFinished / 1000 == item.totalTime) {
                         //start a new timer up
-                        itemTimerStart("Put " + item.getName() + " in for " + timeInMinutes(item.seconds));
+
+
+                        soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.seconds), 1);
+//                        mplayer = MediaPlayer.create(getBaseContext(),R.raw.alarm);
+//                        mplayer.start();;
                     }
                     if (millisUntilFinished / 1000 <= item.totalTime) {
                         item.secondsLeft--;
                         // check if an item is ready
                         if (item.secondsLeft <= 0) {
                             // what to do when an item is ready
-                            soundAlarm("Remove " + item.getName());
+                            soundAlarm("Remove " + item.getName(), 2);
                             itemList.remove(item);
                             break;
                         }
@@ -101,19 +109,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void itemTimerStart(String message) {
         //change the toast for a dismissable message
-        Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_LONG).show();
+        //Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_LONG).show();
+        soundAlarm(message, 1);
         // play alarm sound
         mplayer = MediaPlayer.create(this, R.raw.alarm);
         mplayer.start();
     }
-
-    public void soundAlarm(String message) {
-        Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_SHORT).show();
-        // play alarm sound
-        mplayer = MediaPlayer.create(this, R.raw.siren);
-        mplayer.start();
-    }
-
 
     public void resetTimer() {
 
@@ -131,6 +132,55 @@ public class MainActivity extends AppCompatActivity {
             secs = "0" + secs;
         }
         return mins + ":" + secs + " minutes";
+    }
+
+    public void showAddItem(View view) {
+        if (!showingAddItem) {
+            showingAddItem = true;
+            View addItem = findViewById(R.id.ItemInfo);
+
+            addItem.setTranslationY(-1500f);
+            addItem.setVisibility(View.VISIBLE);
+            addItem.animate().translationYBy(1500f).setDuration(500);
+
+        }
+    }
+
+    public void hideAddItem(View view) {
+        View addItem = findViewById(R.id.ItemInfo);
+        addItem.setVisibility(View.INVISIBLE);
+        showingAddItem = false;
+
+    }
+
+    public void soundAlarm(String message, int soundNumber) {
+        Log.i("Sound Alarm", "Method called");
+        TextView alarmMessage = (TextView) findViewById(R.id.alarmMessage);
+        alarmMessage.setText(message);
+        View messageLayout = findViewById(R.id.alarmLayout);
+        messageLayout.setVisibility(View.VISIBLE);
+
+        // play alarm sound
+        switch (soundNumber) {
+            case 1:
+                Log.i("Switch","Case 1");
+                mplayer = MediaPlayer.create(getBaseContext(), R.raw.alarm);
+                break;
+            case 2:
+                Log.i("Switch","Case 2");
+                mplayer = MediaPlayer.create(getBaseContext(), R.raw.siren);
+                break;
+        }
+        if (soundNumber > 0) {
+            mplayer.start();
+        } ;
+    }
+
+    public void closeMessage(View view) {
+        View alarmLayout = findViewById(R.id.alarmLayout);
+        alarmLayout.setVisibility(View.INVISIBLE);
+        mplayer.stop();
+        mplayer.release();
     }
 
     public void addItem(View view) {
@@ -178,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         sortMyList();
+        hideAddItem(view);
     }
 
     public void sortMyList() {
