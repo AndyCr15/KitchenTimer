@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
             addItem.setTranslationY(-1500f);
             addItem.setVisibility(View.VISIBLE);
-            addItem.animate().translationYBy(1500f).setDuration(500);
+            addItem.animate().translationYBy(1100f).setDuration(500);
 
         }
     }
@@ -189,28 +189,31 @@ public class MainActivity extends AppCompatActivity {
         EditText itemTime = (EditText) findViewById(R.id.itemTime);
         EditText itemFinish = (EditText) findViewById(R.id.finishTime);
 
+        // check details are entered
         if (itemName.length() == 0 || itemName.equals("") || itemTime.length() == 0 || itemTime.equals("")) {
             Toast.makeText(getApplicationContext(), "Enter item details",
                     Toast.LENGTH_SHORT).show();
         } else {
 
+            // details are there, so lets add an item to the list
             Log.i("Item Added :", itemName.getText().toString());
             Log.i("Item Added :", itemTime.getText().toString());
             Log.i("Item Added :", itemFinish.getText().toString());
 
-            String value = itemTime.getText().toString();
-            int seconds = Integer.parseInt(value);
-
+            // read how many seconds the timer needs
+            int seconds = Integer.parseInt(itemTime.getText().toString());
             int finish;
 
             String value2 = itemFinish.getText().toString();
 
+            // finish time (gap befor end of cooking) can be left blank, so 'try' used
             try {
                 finish = Integer.parseInt(value2);
             } catch (Exception e) {
                 finish = 0;
             }
 
+            // create the timerItem object and add it to my list of items
             timerItem next = new timerItem(itemName.getText().toString(), seconds, finish);
             itemList.add(next);
 
@@ -222,12 +225,15 @@ public class MainActivity extends AppCompatActivity {
             itemTime.clearFocus();
             itemFinish.clearFocus();
 
+            // drops the keyboard out of view, now the item is added
             if (view != null) {
                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
             }
         }
+        // refreshes the list of items
         sortMyList();
+        // hide the layout for adding an item
         hideAddItem(view);
     }
 
