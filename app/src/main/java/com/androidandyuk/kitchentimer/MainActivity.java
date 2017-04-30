@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     boolean showingAddItem = false;
     boolean mainTimerIsPaused = false;
 
-    int longestTimer;
+    long longestTimer;
     Button timerButton;
     CountDownTimer countDownTimer;
     MediaPlayer mplayer;
@@ -46,12 +46,12 @@ public class MainActivity extends AppCompatActivity {
             timerIsActive = false;
             resetTimer();
             for (timerItem item : itemList) {
-                item.secondsLeft = item.seconds + item.finishBy;
+                item.milliSecondsLeft = item.milliSeconds + item.finishBy;
             }
         } else if (itemList.size() > 0) {
             //code if timer is not running
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
-            Log.i("Starting Timer", "Longest time is " + (itemList.get(itemList.size() - 1)).getTotalTime());
+            Log.i("Starting Timer", "Longest time is " + itemList.get(itemList.size() - 1).getTotalTime());
             Collections.sort(itemList);
             timerIsActive = true;
             timerButton.setText("Stop");
@@ -61,36 +61,34 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startTimer(int seconds) {
+    public void startTimer(long milliSeconds) {
 
         if (!mainTimerIsPaused) {
-            Log.i("Timer started : ", "" + Integer.valueOf(seconds));
-            soundAlarm("Timer started : " + timeInMinutes(seconds), 0);
+            Log.i("Timer started : ", "" + Long.valueOf(milliSeconds) / 1000);
+            soundAlarm("Timer started : " + timeInMinutes(milliSeconds), 0);
         }
 
         mainTimerIsPaused = false;
 
-        countDownTimer = new CountDownTimer(seconds * 1000 + 50, 1000) {
+        countDownTimer = new CountDownTimer(milliSeconds + 50, 100) {
 
             @Override
             public void onTick(long millisUntilFinished) {
 
-                int secondsUntilFinished = (int) (millisUntilFinished / 1000);
-
-                timerButton.setText(timeInMinutes(secondsUntilFinished) + " (Press to Cancel)");
+                timerButton.setText(timeInMinutes(millisUntilFinished) + " (Press to Cancel)");
 
                 // for each item in the list, drop a second off it's time left
                 for (timerItem item : itemList) {
 
                     // check if any new timers need to start
-                    if (secondsUntilFinished == item.totalTime) {
+                    if (millisUntilFinished == item.totalTime) {
                         //start a new timer up
-                        soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.seconds), 1);
+                        soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.milliSeconds), 1);
                     }
-                    if (secondsUntilFinished <= item.totalTime && !item.isPauseTimer()) {
-                        item.secondsLeft--;
+                    if (millisUntilFinished <= item.totalTime && !item.isPauseTimer()) {
+                        item.milliSecondsLeft -= 100;
                         // check if an item is ready
-                        if (item.secondsLeft <= 0) {
+                        if (item.milliSecondsLeft <= 0) {
                             // what to do when an item is ready
                             soundAlarm("Remove " + item.getName(), 2);
                             itemList.remove(item);
@@ -98,12 +96,12 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     // check if the items time left is longer than the timer
-                    if ((item.secondsLeft * 1000) > millisUntilFinished) {
+                    if ((item.milliSecondsLeft) > millisUntilFinished) {
                         // Pause the main timer as an item is now longer than it.
                         Log.i("Timer", "item longer than timer");
                         mainTimerIsPaused = true;
                         item.pausingMainTimer = true;
-                        timerButton.setText(timeInMinutes(item.secondsLeft) + " (Press to Cancel)");
+                        timerButton.setText(timeInMinutes(item.milliSecondsLeft) + " (Press to Cancel)");
                     }
                 }
                 sortMyList();
@@ -137,13 +135,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public String timeInMinutes(int seconds) {
-        String mins = Integer.toString(seconds / 60);
-        String secs = Integer.toString(seconds % 60);
+    public String timeInMinutes(long milliSeconds) {
+        String mins = Long.toString(milliSeconds / 60000);
+        String secs = Long.toString(milliSeconds % 60000);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
-        return mins + ":" + secs + " minutes";
+        return mins + ":" + secs;
     }
 
     public void showAddItem(View view) {
@@ -303,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
                 if ((itemList.get(position).isPausingMainTimer())) {
                     itemList.get(position).setPausingMainTimer(false);
                     countDownTimer.cancel();
-                    startTimer((itemList.get(position).secondsLeft));
+                    startTimer((itemList.get(position).milliSecondsLeft));
                 }
                 // toggle the Pause timer state on a single tap
                 (itemList.get(position)).setPauseTimer(!(itemList.get(position)).isPauseTimer());

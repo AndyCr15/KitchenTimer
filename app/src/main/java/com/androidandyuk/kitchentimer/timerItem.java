@@ -6,19 +6,23 @@ package com.androidandyuk.kitchentimer;
 
 public class timerItem implements Comparable<timerItem> {
     String name;
-    int seconds;
-    int finishBy;
-    int totalTime;
-    int secondsLeft;
+    long milliSeconds;
+    long finishBy;
+    long totalTime;
+    long milliSecondsLeft;
     boolean pauseTimer = false;
     boolean pausingMainTimer = false;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
-        this.seconds = seconds;
-        this.finishBy = finishBy;
-        this.totalTime = seconds + finishBy;
-        this.secondsLeft = seconds;
+        this.milliSeconds = (long)seconds * 1000;
+        this.finishBy = (long)finishBy * 1000;
+        this.totalTime = milliSeconds + finishBy;
+        this.milliSecondsLeft = milliSeconds;
+    }
+
+    public int seconds(int milliSeconds){
+        return milliSeconds / 1000;
     }
 
     @Override
@@ -26,9 +30,9 @@ public class timerItem implements Comparable<timerItem> {
         String message;
 
         if (finishBy > 0) {
-            message = "" + name + " for " + timeInMinutes(secondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
+            message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
         } else {
-            message = "" + name + " for " + timeInMinutes(secondsLeft) + " minutes";
+            message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes";
         }
         if (this.isPauseTimer()) {
             message += " (PAUSED)";
@@ -36,17 +40,17 @@ public class timerItem implements Comparable<timerItem> {
         return message;
     }
 
-    public String timeInMinutes(int seconds) {
-        String mins = Integer.toString(seconds / 60);
-        String secs = Integer.toString(seconds % 60);
+    public String timeInMinutes(long milliSeconds) {
+        String mins = Long.toString(milliSeconds / 60000);
+        String secs = Long.toString(milliSeconds % 60000);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
         return mins + ":" + secs;
     }
 
-    public int getSecondsLeft() {
-        return secondsLeft;
+    public long getMilliSecondsLeft() {
+        return milliSecondsLeft;
     }
 
     public boolean isPausingMainTimer() {
@@ -57,8 +61,8 @@ public class timerItem implements Comparable<timerItem> {
         this.pausingMainTimer = pausingMainTimer;
     }
 
-    public void setSecondsLeft(int secondsLeft) {
-        this.secondsLeft = secondsLeft;
+    public void setMilliSecondsLeft(int secondsLeft) {
+        this.milliSecondsLeft = secondsLeft;
     }
 
     public String getName() {
@@ -77,15 +81,15 @@ public class timerItem implements Comparable<timerItem> {
         this.name = name;
     }
 
-    public int getSeconds() {
-        return seconds;
+    public long getMilliSeconds() {
+        return milliSeconds;
     }
 
-    public void setSeconds(int seconds) {
-        this.seconds = seconds;
+    public void setMilliSeconds(int milliSeconds) {
+        this.milliSeconds = milliSeconds;
     }
 
-    public int getFinishBy() {
+    public long getFinishBy() {
         return finishBy;
     }
 
@@ -93,7 +97,7 @@ public class timerItem implements Comparable<timerItem> {
         this.finishBy = finishBy;
     }
 
-    public int getTotalTime() {
+    public long getTotalTime() {
         return totalTime;
     }
 
@@ -104,7 +108,7 @@ public class timerItem implements Comparable<timerItem> {
     @Override
     public int compareTo(timerItem o) {
         // negative means the incoming is greater, positive means the this is greater
-
-        return this.totalTime - o.totalTime;
+        long dif = this.totalTime - o.totalTime;
+        return (int)dif;
     }
 }

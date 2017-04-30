@@ -38,7 +38,7 @@
                 android:elevation="24dp"
                 android:onClick="timerButtonPressed"
                 android:text="Start Timer"
-                android:textSize="10sp"
+                android:textSize="14sp"
                 tools:layout_editor_absoluteX="8dp"
                 tools:layout_editor_absoluteY="81dp" />
 
