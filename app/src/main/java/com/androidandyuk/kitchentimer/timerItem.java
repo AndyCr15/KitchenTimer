@@ -5,19 +5,19 @@ package com.androidandyuk.kitchentimer;
  */
 
 public class timerItem implements Comparable<timerItem> {
-    String name;
+    private String name;
     long milliSeconds;
     long finishBy;
     long totalTime;
     long milliSecondsLeft;
-    boolean pauseTimer = false;
+    private boolean pauseTimer = false;
     boolean pausingMainTimer = false;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
         this.milliSeconds = (long)seconds * 1000;
         this.finishBy = (long)finishBy * 1000;
-        this.totalTime = milliSeconds + finishBy;
+        this.totalTime = this.milliSeconds + this.finishBy;
         this.milliSecondsLeft = milliSeconds;
     }
 
@@ -83,7 +83,7 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public long getMilliSeconds() {
-        return milliSeconds;
+        return this.milliSeconds;
     }
 
     public void setMilliSeconds(int milliSeconds) {
@@ -91,7 +91,7 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public long getFinishBy() {
-        return finishBy;
+        return this.finishBy;
     }
 
     public void setFinishBy(int finishBy) {
@@ -99,7 +99,7 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public long getTotalTime() {
-        return totalTime;
+        return this.totalTime;
     }
 
     public void setTotalTime(int totalTime) {
@@ -109,7 +109,7 @@ public class timerItem implements Comparable<timerItem> {
     @Override
     public int compareTo(timerItem o) {
         // negative means the incoming is greater, positive means the this is greater
-        long dif = this.totalTime - o.totalTime;
+        long dif = this.totalTime - o.getTotalTime();
         return (int)dif;
     }
 }
