@@ -1,6 +1,7 @@
 package com.androidandyuk.kitchentimer;
 
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -25,13 +26,15 @@ public class MainActivity extends AppCompatActivity {
 
     ListView itemListView;
     List<timerItem> itemList = new ArrayList<>();
-    int longestTimer;
     boolean timerIsActive = false;
+    boolean showingAddItem = false;
+    boolean mainTimerIsPaused = false;
+
+    int longestTimer;
     Button timerButton;
     CountDownTimer countDownTimer;
     MediaPlayer mplayer;
     //the add item layout is not showing to begin with
-    boolean showingAddItem = false;
 
 
     public void timerButtonPressed(View view) {
@@ -60,28 +63,31 @@ public class MainActivity extends AppCompatActivity {
 
     public void startTimer(int seconds) {
 
-        Log.i("Timer started : ", "" + Integer.valueOf(seconds));
-        soundAlarm("Timer started : " + timeInMinutes(seconds), 0);
+        if (!mainTimerIsPaused) {
+            Log.i("Timer started : ", "" + Integer.valueOf(seconds));
+            soundAlarm("Timer started : " + timeInMinutes(seconds), 0);
+        }
 
-        countDownTimer = new CountDownTimer(seconds * 1000 + 100, 1000) {
+        mainTimerIsPaused = false;
+
+        countDownTimer = new CountDownTimer(seconds * 1000 + 50, 1000) {
 
             @Override
             public void onTick(long millisUntilFinished) {
 
-                timerButton.setText(timeInMinutes((int) millisUntilFinished / 1000));
+                int secondsUntilFinished = (int) (millisUntilFinished / 1000);
+
+                timerButton.setText(timeInMinutes(secondsUntilFinished) + " (Press to Cancel)");
 
                 // for each item in the list, drop a second off it's time left
                 for (timerItem item : itemList) {
+
                     // check if any new timers need to start
-                    if (millisUntilFinished / 1000 == item.totalTime) {
+                    if (secondsUntilFinished == item.totalTime) {
                         //start a new timer up
-
-
                         soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.seconds), 1);
-//                        mplayer = MediaPlayer.create(getBaseContext(),R.raw.alarm);
-//                        mplayer.start();;
                     }
-                    if (millisUntilFinished / 1000 <= item.totalTime) {
+                    if (secondsUntilFinished <= item.totalTime && !item.isPauseTimer()) {
                         item.secondsLeft--;
                         // check if an item is ready
                         if (item.secondsLeft <= 0) {
@@ -90,6 +96,14 @@ public class MainActivity extends AppCompatActivity {
                             itemList.remove(item);
                             break;
                         }
+                    }
+                    // check if the items time left is longer than the timer
+                    if ((item.secondsLeft * 1000) > millisUntilFinished) {
+                        // Pause the main timer as an item is now longer than it.
+                        Log.i("Timer", "item longer than timer");
+                        mainTimerIsPaused = true;
+                        item.pausingMainTimer = true;
+                        timerButton.setText(timeInMinutes(item.secondsLeft) + " (Press to Cancel)");
                     }
                 }
                 sortMyList();
@@ -101,10 +115,8 @@ public class MainActivity extends AppCompatActivity {
                 // action to take on end of alarm
                 Toast.makeText(MainActivity.this, "Times up!", Toast.LENGTH_LONG).show();
                 resetTimer();
-
             }
         }.start();
-
     }
 
     public void itemTimerStart(String message) {
@@ -163,17 +175,18 @@ public class MainActivity extends AppCompatActivity {
         // play alarm sound
         switch (soundNumber) {
             case 1:
-                Log.i("Switch","Case 1");
+                Log.i("Switch", "Case 1");
                 mplayer = MediaPlayer.create(getBaseContext(), R.raw.alarm);
                 break;
             case 2:
-                Log.i("Switch","Case 2");
+                Log.i("Switch", "Case 2");
                 mplayer = MediaPlayer.create(getBaseContext(), R.raw.siren);
                 break;
         }
         if (soundNumber > 0) {
             mplayer.start();
-        } ;
+        }
+        ;
     }
 
     public void closeMessage(View view) {
@@ -249,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
 
         itemListView = (ListView) findViewById(R.id.itemListView);
@@ -268,19 +282,44 @@ public class MainActivity extends AppCompatActivity {
 
         itemListView.setAdapter(arrayAdapter);
 
-        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
+            public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                Log.i("Long Press on", " " + position);
                 Toast.makeText(MainActivity.this, "Removing " + itemList.get(position), Toast.LENGTH_SHORT).show();
                 itemList.remove(position);
                 sortMyList();
-
+                return true;
             }
         });
 
+        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.i("Short Press on", " " + position);
+                Log.i("Item :", " " + (itemList.get(position)));
 
+                // if clicking an item that is pausing the main timer, restert the timer on this time
+                if ((itemList.get(position).isPausingMainTimer())) {
+                    itemList.get(position).setPausingMainTimer(false);
+                    countDownTimer.cancel();
+                    startTimer((itemList.get(position).secondsLeft));
+                }
+                // toggle the Pause timer state on a single tap
+                (itemList.get(position)).setPauseTimer(!(itemList.get(position)).isPauseTimer());
+            }
+        });
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        //ListView itemListView;
+        //savedInstanceState.putStringArrayList("itemList", itemList<timerItem>);
+
+        savedInstanceState.putBoolean("timerIsActive", timerIsActive);
+        savedInstanceState.putBoolean("showingAddItem", showingAddItem);
+    }
 }
 

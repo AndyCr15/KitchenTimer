@@ -10,6 +10,8 @@ public class timerItem implements Comparable<timerItem> {
     int finishBy;
     int totalTime;
     int secondsLeft;
+    boolean pauseTimer = false;
+    boolean pausingMainTimer = false;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
@@ -21,11 +23,17 @@ public class timerItem implements Comparable<timerItem> {
 
     @Override
     public String toString() {
+        String message;
+
         if (finishBy > 0) {
-            return "" + name + " for " + timeInMinutes(secondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
+            message = "" + name + " for " + timeInMinutes(secondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
         } else {
-            return "" + name + " for " + timeInMinutes(secondsLeft) + " minutes";
+            message = "" + name + " for " + timeInMinutes(secondsLeft) + " minutes";
         }
+        if (this.isPauseTimer()) {
+            message += " (PAUSED)";
+        } ;
+        return message;
     }
 
     public String timeInMinutes(int seconds) {
@@ -41,12 +49,28 @@ public class timerItem implements Comparable<timerItem> {
         return secondsLeft;
     }
 
+    public boolean isPausingMainTimer() {
+        return pausingMainTimer;
+    }
+
+    public void setPausingMainTimer(boolean pausingMainTimer) {
+        this.pausingMainTimer = pausingMainTimer;
+    }
+
     public void setSecondsLeft(int secondsLeft) {
         this.secondsLeft = secondsLeft;
     }
 
     public String getName() {
         return name;
+    }
+
+    public boolean isPauseTimer() {
+        return pauseTimer;
+    }
+
+    public void setPauseTimer(boolean pauseTimer) {
+        this.pauseTimer = pauseTimer;
     }
 
     public void setName(String name) {
@@ -79,17 +103,8 @@ public class timerItem implements Comparable<timerItem> {
 
     @Override
     public int compareTo(timerItem o) {
-
         // negative means the incoming is greater, positive means the this is greater
 
         return this.totalTime - o.totalTime;
-
-//        if(this.totalTime > o.totalTime) {
-//            return 1;
-//        } else if (this.totalTime > o.totalTime) {
-//            return -1;
-//        }
-//
-//        return 0;
     }
 }
