@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     boolean timerIsActive = false;
     boolean showingAddItem = false;
     boolean mainTimerIsPaused = false;
+    boolean mediaPlayerPlaying = false;
 
     long longestTimer;
     Button timerButton;
@@ -70,14 +71,14 @@ public class MainActivity extends AppCompatActivity {
 
         mainTimerIsPaused = false;
 
-        countDownTimer = new CountDownTimer(milliSeconds + 50, 100) {
+        countDownTimer = new CountDownTimer(milliSeconds, 100) {
 
             @Override
             public void onTick(long millisUntilFinished) {
 
                 timerButton.setText(timeInMinutes(millisUntilFinished) + " (Press to Cancel)");
 
-                // for each item in the list, drop a second off it's time left
+                // for each item in the list, drop a tenth of a second off it's time left
                 for (timerItem item : itemList) {
 
                     // check if any new timers need to start
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                         //start a new timer up
                         soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.milliSeconds), 1);
                     }
+                    // check item is in range and not paused
                     if (millisUntilFinished <= item.totalTime && !item.isPauseTimer()) {
                         item.milliSecondsLeft -= 100;
                         // check if an item is ready
@@ -96,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     // check if the items time left is longer than the timer
-                    if ((item.milliSecondsLeft) > millisUntilFinished) {
+                    if ((item.milliSecondsLeft - 50) > millisUntilFinished) {
                         // Pause the main timer as an item is now longer than it.
                         Log.i("Timer", "item longer than timer");
                         mainTimerIsPaused = true;
@@ -111,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
             public void onFinish() {
 
                 // action to take on end of alarm
+
                 Toast.makeText(MainActivity.this, "Times up!", Toast.LENGTH_LONG).show();
                 resetTimer();
             }
@@ -122,8 +125,8 @@ public class MainActivity extends AppCompatActivity {
         //Toast.makeText(MainActivity.this, "" + message, Toast.LENGTH_LONG).show();
         soundAlarm(message, 1);
         // play alarm sound
-        mplayer = MediaPlayer.create(this, R.raw.alarm);
-        mplayer.start();
+//        mplayer = MediaPlayer.create(this, R.raw.alarm);
+//        mplayer.start();
     }
 
     public void resetTimer() {
@@ -137,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
 
     public String timeInMinutes(long milliSeconds) {
         String mins = Long.toString(milliSeconds / 60000);
-        String secs = Long.toString(milliSeconds % 60000);
+        int intSecs = (int) (milliSeconds % 60000) / 1000;
+        String secs = Integer.toString(intSecs);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
@@ -167,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("Sound Alarm", "Method called");
         TextView alarmMessage = (TextView) findViewById(R.id.alarmMessage);
         alarmMessage.setText(message);
-        View messageLayout = findViewById(R.id.alarmLayout);
+        View messageLayout = findViewById(R.id.messageLayout);
         messageLayout.setVisibility(View.VISIBLE);
 
         // play alarm sound
@@ -183,15 +187,22 @@ public class MainActivity extends AppCompatActivity {
         }
         if (soundNumber > 0) {
             mplayer.start();
+            mediaPlayerPlaying = true;
         }
         ;
     }
 
     public void closeMessage(View view) {
-        View alarmLayout = findViewById(R.id.alarmLayout);
-        alarmLayout.setVisibility(View.INVISIBLE);
-        mplayer.stop();
-        mplayer.release();
+        Log.i("Close message", "Start");
+        View messageLayout = findViewById(R.id.messageLayout);
+        messageLayout.setVisibility(View.INVISIBLE);
+        Log.i("Mplayer ", " trying to close");
+        if (mediaPlayerPlaying) {
+            mplayer.stop();
+            mplayer.release();
+            mediaPlayerPlaying = false;
+        }
+        Log.i("Close message", "End");
     }
 
     public void addItem(View view) {

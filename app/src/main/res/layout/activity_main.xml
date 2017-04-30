@@ -7,7 +7,7 @@
     android:layout_height="fill_parent">
 
     <android.support.constraint.ConstraintLayout
-        android:id="@+id/Main"
+        android:id="@+id/Timer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -172,7 +172,7 @@
     </android.support.constraint.ConstraintLayout>
 
     <android.support.constraint.ConstraintLayout
-        android:id="@+id/alarmLayout"
+        android:id="@+id/messageLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"

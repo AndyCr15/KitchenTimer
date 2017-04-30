@@ -42,7 +42,8 @@ public class timerItem implements Comparable<timerItem> {
 
     public String timeInMinutes(long milliSeconds) {
         String mins = Long.toString(milliSeconds / 60000);
-        String secs = Long.toString(milliSeconds % 60000);
+        int intSecs = (int)(milliSeconds % 60000)/1000;
+        String secs = Integer.toString(intSecs);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
