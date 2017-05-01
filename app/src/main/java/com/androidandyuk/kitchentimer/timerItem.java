@@ -15,6 +15,7 @@ public class timerItem implements Comparable<timerItem> {
     long milliSecondsLeft;
     private boolean pauseTimer = false;
     boolean pausingMainTimer = false;
+    boolean hasStarted = false;
     List<timerItem> itemQueue = new ArrayList<>();
 
     public timerItem(String name, int seconds, int finishBy) {
