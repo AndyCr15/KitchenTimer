@@ -1,5 +1,8 @@
 package com.androidandyuk.kitchentimer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by AndyCr15 on 26/04/2017.
  */
@@ -12,16 +15,16 @@ public class timerItem implements Comparable<timerItem> {
     long milliSecondsLeft;
     private boolean pauseTimer = false;
     boolean pausingMainTimer = false;
+    List<timerItem> itemQueue = new ArrayList<>();
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
-        this.milliSeconds = (long)seconds * 1000;
-        this.finishBy = (long)finishBy * 1000;
-        this.totalTime = this.milliSeconds + this.finishBy;
+        this.milliSeconds = (long) seconds * 1000;
+        this.finishBy = (long) finishBy * 1000;
         this.milliSecondsLeft = milliSeconds;
     }
 
-    public int seconds(int milliSeconds){
+    public int seconds(int milliSeconds) {
         return milliSeconds / 1000;
     }
 
@@ -29,20 +32,28 @@ public class timerItem implements Comparable<timerItem> {
     public String toString() {
         String message;
 
+        message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes";
+
         if (finishBy > 0) {
-            message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes, to be finished with " + timeInMinutes(finishBy) + " minutes to go";
-        } else {
-            message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes";
+            message += ", to be finished with " + timeInMinutes(finishBy) + " minutes to go";
         }
+
+        if (itemQueue.size() > 0) {
+            for (timerItem item : itemQueue) {
+                message += " before the " + item;
+            }
+        }
+
         if (this.isPauseTimer()) {
             message += " (PAUSED)";
-        } ;
+        }
+        ;
         return message;
     }
 
     public String timeInMinutes(long milliSeconds) {
         String mins = Long.toString(milliSeconds / 60000);
-        int intSecs = (int)(milliSeconds % 60000)/1000;
+        int intSecs = (int) (milliSeconds % 60000) / 1000;
         String secs = Integer.toString(intSecs);
         if (secs.length() < 2) {
             secs = "0" + secs;
@@ -60,6 +71,10 @@ public class timerItem implements Comparable<timerItem> {
 
     public void setPausingMainTimer(boolean pausingMainTimer) {
         this.pausingMainTimer = pausingMainTimer;
+    }
+
+    public List<timerItem> getItemQueue() {
+        return itemQueue;
     }
 
     public void setMilliSecondsLeft(int secondsLeft) {
@@ -109,7 +124,21 @@ public class timerItem implements Comparable<timerItem> {
     @Override
     public int compareTo(timerItem o) {
         // negative means the incoming is greater, positive means the this is greater
-        long dif = this.totalTime - o.getTotalTime();
-        return (int)dif;
+        this.totalTime = this.milliSecondsLeft + this.finishBy;
+        if (this.itemQueue.size() > 0) {
+            for (timerItem item : this.itemQueue) {
+                this.totalTime += item.milliSecondsLeft + item.finishBy;
+            }
+        }
+
+        long compareItem = o.milliSecondsLeft + o.finishBy;
+        if (o.itemQueue.size() > 0) {
+            for (timerItem item : o.itemQueue) {
+                compareItem += item.milliSecondsLeft + item.finishBy;
+            }
+        }
+
+        long dif = this.totalTime - compareItem;
+        return (int) dif;
     }
 }
