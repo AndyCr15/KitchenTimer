@@ -1,8 +1,5 @@
 package com.androidandyuk.kitchentimer;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by AndyCr15 on 26/04/2017.
  */
@@ -11,22 +8,20 @@ public class timerItem implements Comparable<timerItem> {
     private String name;
     long milliSeconds;
     long finishBy;
+    long finishByLeft;
     long totalTime;
     long milliSecondsLeft;
     private boolean pauseTimer = false;
     boolean pausingMainTimer = false;
     boolean hasStarted = false;
-    List<timerItem> itemQueue = new ArrayList<>();
+    timerItem nextItem = null;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
         this.milliSeconds = (long) seconds * 1000;
-        this.finishBy = (long) finishBy * 1000;
         this.milliSecondsLeft = milliSeconds;
-    }
-
-    public int seconds(int milliSeconds) {
-        return milliSeconds / 1000;
+        this.finishBy = (long) finishBy * 1000;
+        this.finishByLeft = this.finishBy;
     }
 
     @Override
@@ -36,13 +31,12 @@ public class timerItem implements Comparable<timerItem> {
         message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes";
 
         if (finishBy > 0) {
-            message += ", to be finished with " + timeInMinutes(finishBy) + " minutes to go";
+            message += ", to be finished with " + timeInMinutes(finishByLeft) + " minutes to go";
         }
 
-        if (itemQueue.size() > 0) {
-            for (timerItem item : itemQueue) {
-                message += " before the " + item.getName();
-            }
+        // add the next item onto the display nemae
+        if (nextItem != null) {
+            message += " before the " + nextItem.getName();
         }
 
         if (this.isPauseTimer()) {
@@ -62,6 +56,14 @@ public class timerItem implements Comparable<timerItem> {
         return mins + ":" + secs;
     }
 
+    public timerItem getNextItem() {
+        return nextItem;
+    }
+
+    public void setNextItem(timerItem nextItem) {
+        this.nextItem = nextItem;
+    }
+
     public long getMilliSecondsLeft() {
         return milliSecondsLeft;
     }
@@ -72,10 +74,6 @@ public class timerItem implements Comparable<timerItem> {
 
     public void setPausingMainTimer(boolean pausingMainTimer) {
         this.pausingMainTimer = pausingMainTimer;
-    }
-
-    public List<timerItem> getItemQueue() {
-        return itemQueue;
     }
 
     public void setMilliSecondsLeft(int secondsLeft) {
@@ -115,7 +113,11 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public long getTotalTime() {
-        return this.totalTime;
+        Long amount = this.milliSecondsLeft + this.finishByLeft;
+        if (this.nextItem != null) {
+            amount += this.nextItem.getTotalTime();
+        }
+        return amount;
     }
 
     public void setTotalTime(int totalTime) {
@@ -125,21 +127,6 @@ public class timerItem implements Comparable<timerItem> {
     @Override
     public int compareTo(timerItem o) {
         // negative means the incoming is greater, positive means the this is greater
-        this.totalTime = this.milliSecondsLeft + this.finishBy;
-        if (this.itemQueue.size() > 0) {
-            for (timerItem item : this.itemQueue) {
-                this.totalTime += item.milliSecondsLeft + item.finishBy;
-            }
-        }
-
-        long compareItem = o.milliSecondsLeft + o.finishBy;
-        if (o.itemQueue.size() > 0) {
-            for (timerItem item : o.itemQueue) {
-                compareItem += item.milliSecondsLeft + item.finishBy;
-            }
-        }
-
-        long dif = this.totalTime - compareItem;
-        return (int) dif;
+        return (int) this.getTotalTime() - (int) o.getTotalTime();
     }
 }
