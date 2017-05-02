@@ -41,7 +41,7 @@ public class timerItem implements Comparable<timerItem> {
 
         if (itemQueue.size() > 0) {
             for (timerItem item : itemQueue) {
-                message += " before the " + item;
+                message += " before the " + item.getName();
             }
         }
 

@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.PowerManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     int maxTime = 1500;
     //the add item layout is not showing to begin with
 
+    PowerManager.WakeLock wl;
 
     public void timerButtonPressed(View view) {
 
@@ -81,8 +83,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void startTimer(long milliSeconds) {
 
+        //stop phone from sleeping
+        wl.acquire();
+
+
         // Timer is started to be an hour long, but only really used for it's tick
         // mainTimerView decides if and when things happen
+        sortMyList();
+        Log.i("Starting Timer","Longest Timer " + longestTimer);
         mainTimerView = longestTimer;
 
         if (!mainTimerIsPaused) {
@@ -98,7 +106,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
 
-                timerButton.setText(timeInMinutes(mainTimerView) + " (Press to Reset)");
+                timerButton.setText("Total time " + timeInMinutes(mainTimerView) + " (Press to Reset)");
+                Log.i("Main Timer", "" + mainTimerView);
                 mainTimerView -= 250;
 
                 // every quarter of a second run this loop for each item in the list
@@ -155,8 +164,9 @@ public class MainActivity extends AppCompatActivity {
                     //Toast.makeText(MainActivity.this, "Times up!", Toast.LENGTH_LONG).show();
                     soundAlarm("Times up!", 2);
                     resetTimer();
+                    wl.release();
                 } else {
-                    startTimer(mainTimerView);
+                    startTimer(360000);
                 }
             }
         }.start();
@@ -318,9 +328,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sortMyList() {
+        Log.i("SortMyList","List size " + itemList.size());
         if (itemList.size() > 0) {
             Collections.sort(itemList);
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
+            Log.i("SortMyList","longestTimer " + longestTimer);
         }
         ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
         itemListView.setAdapter(arrayAdapter);
@@ -345,15 +357,19 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
 
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
+
         itemListView = (ListView) findViewById(R.id.itemListView);
         timerButton = (Button) findViewById(R.id.timerButton);
         timerButton.setText("Start Timer");
 
-        itemTimeView = (TextView)findViewById(R.id.itemTime);
-        itemTimeView.setText(timeInMinutes((long)itemTime));
+        itemTimeView = (TextView) findViewById(R.id.itemTime);
+        itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000) + " MINS");
+//        itemFinishView.setText("CUSHION : " + timeInMinutes((long)finishBy*1000) + " MINS");
 
-        itemFinishView = (TextView)findViewById(R.id.finishTime);
-        itemFinishView.setText(timeInMinutes((long)finishBy));
+        itemFinishView = (TextView) findViewById(R.id.finishTime);
+        itemFinishView.setText(timeInMinutes((long) finishBy));
 
         buttonBefore = (Button) findViewById(R.id.buttonBefore);
         buttonAfter = (Button) findViewById(R.id.buttonAfter);
@@ -363,19 +379,20 @@ public class MainActivity extends AppCompatActivity {
 
         itemTimeSeekBar.setMax(maxTime);
         itemTimeSeekBar.setProgress(itemTime);
-        finishBySeekBar.setMax(600);
+        finishBySeekBar.setMax(590);
 
-        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
+//        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
 
         // add default items
-        timerItem egg = new timerItem("Egg", 180, 0);
-        timerItem toast = new timerItem("Toast", 120, 0);
-        timerItem sausage = new timerItem("Sausage", 290, 0);
-        timerItem bacon = new timerItem("Bacon", 300, 0);
-        itemList.add(egg);
-        itemList.add(toast);
-        itemList.add(sausage);
-        itemList.add(bacon);
+        timerItem pasta = new timerItem("Pasta", 660, 60);
+        timerItem mince = new timerItem("Mincemeat", 300, 0);
+        timerItem sauce = new timerItem("Mincemeat & Sauce", 300, 0);
+        mince.itemQueue.add(sauce);
+//        timerItem bacon = new timerItem("Bacon", 300, 0);
+        itemList.add(pasta);
+        itemList.add(mince);
+        itemList.add(sauce);
+//        itemList.add(bacon);
 
         sortMyList();
 
@@ -389,7 +406,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("Long Press on", " " + position);
                 Toast.makeText(MainActivity.this, "Removing " + itemList.get(position), Toast.LENGTH_SHORT).show();
                 removeFromQueue(itemList.get(position));
+                Log.i("Remove Item", "Queue references removed");
                 itemList.remove(position);
+                Log.i("Remove Item", "item removed");
                 sortMyList();
                 return true;
             }
@@ -432,8 +451,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Log.i("Item Time SeekBar value", Integer.toString(progress));
-                itemTime =  ((progress/10)*10);
-                itemTimeView.setText(timeInMinutes((long)itemTime*1000));
+                itemTime = ((progress / 10) * 10);
+                itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000) + " MINS");
             }
 
             @Override
@@ -451,8 +470,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Log.i("Finish SeekBar value", Integer.toString(progress));
-                finishBy =  ((progress/10)*10);
-                itemFinishView.setText(timeInMinutes((long)finishBy*1000));
+                finishBy = ((progress / 10) * 10);
+                itemFinishView.setText("CUSHION : " + timeInMinutes((long) finishBy * 1000) + " MINS");
             }
 
             @Override
@@ -478,8 +497,8 @@ public class MainActivity extends AppCompatActivity {
                     //match found, remove the item
                     Log.i("Removing", "Found a match");
                     checkedItem.itemQueue.remove(i);
-                    i++;
                 }
+                i++;
             }
         }
     }
