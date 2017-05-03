@@ -15,11 +15,13 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     TextView itemTimeView;
     TextView itemFinishView;
 
-    List<timerItem> itemList = new ArrayList<>();
+    static List<timerItem> itemList = new ArrayList<>();
     boolean timerIsActive = false;
     boolean showingAddItem = false;
     boolean mainTimerIsPaused = false;
@@ -44,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
     boolean choosingQueueItem = false;
     timerItem itemToQueue;
     String queueTag = "0";
+    static ToggleButton serialToggle;
+    static boolean serial = false;
 
     long longestTimer;
     long mainTimerView;
@@ -86,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             Collections.sort(itemList);
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
             Log.i("Starting Timer", "Longest time is " + itemList.get(itemList.size() - 1).getTotalTime());
-            Log.i("Timer ", " " + itemList.get(itemList.size() - 1).milliSeconds + " finishBy " + itemList.get(itemList.size() - 1).getFinishBy());
+//            Log.i("Timer ", " " + itemList.get(itemList.size() - 1).milliSeconds + " finishBy " + itemList.get(itemList.size() - 1).getFinishBy());
             timerIsActive = true;
             timerButton.setText("Stop");
             // Start timer at an hour, mainTimerView will actually decide when what happens
@@ -101,11 +105,9 @@ public class MainActivity extends AppCompatActivity {
         //stop phone from sleeping
         wl.acquire();
 
-
         // Timer is started to be an hour long, but only really used for it's tick
         // mainTimerView decides if and when things happen
         sortMyList();
-        Log.i("Starting Timer", "Longest Timer " + longestTimer);
         mainTimerView = longestTimer;
 
         if (!mainTimerIsPaused) {
@@ -121,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
 
-                timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle) + " (Press to Reset)");
+                timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
 
                 // every quarter of a second run this loop for each item in the list
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // check for 30 second warning of new item
-                    if (((mainTimerView - warningTime) == item.totalTime) && (!item.hasStarted) && warningsWanted) {
+                    if (((mainTimerView - warningTime) == item.getTotalTime()) && (!item.hasStarted) && warningsWanted) {
                         //give 30 second warning
                         mplayer = MediaPlayer.create(getApplicationContext(), R.raw.blip);
                         mplayer.start();
@@ -204,38 +206,25 @@ public class MainActivity extends AppCompatActivity {
 
     public void resetTimer() {
         Log.i("Timer", "Reset!");
-        timerButton.setText("Start Timer");
+
         countDownTimer.cancel();
         timerIsActive = false;
+        showingAddItem = false;
+        mainTimerIsPaused = false;
+        mediaPlayerPlaying = false;
+        choosingQueueItem = false;
+        queueTag = "0";
+        itemLongPressedPosition = 0;
+
         for (timerItem item : itemList) {
             item.milliSecondsLeft = item.milliSeconds;
             item.finishByLeft = item.finishBy;
             item.setPausingMainTimer(false);
             item.setPauseTimer(false);
         }
+        timerButton.setText("Start Timer");
         sortMyList();
 
-    }
-
-    public String timeInMinutes(long milliSeconds, int style) {
-        String mins = Long.toString(milliSeconds / 60000);
-        int intSecs = (int) (milliSeconds % 60000) / 1000;
-        String secs = Integer.toString(intSecs);
-        if (secs.length() < 2) {
-            secs = "0" + secs;
-        }
-        String value = "0m 0s";
-
-        //varry the output based on the setting
-        switch (style) {
-            case 0:
-                value = mins + ":" + secs + " mins";
-                break;
-            case 1:
-                value = mins + "m " + " " + secs + "s";
-                break;
-        }
-        return value;
     }
 
     public void showItemInfo(View view) {
@@ -301,25 +290,38 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
         } else {
             // details are there, so lets add an item to the list
-            Log.i("Item Added ", itemInfoName.getText().toString());
-            Log.i("Item Added ", "" + itemTime);
-            Log.i("Item Added ", "" + finishBy);
-
             // create the timerItem object
-            timerItem next = new timerItem(itemInfoName.getText().toString(), itemTime, finishBy);
+            timerItem newItem = new timerItem(itemInfoName.getText().toString(), itemTime, finishBy);
+            Log.i("Item Added", newItem + " added");
             // check if the item needs to be before or after anything else
             Log.i("Adding Item", "queue tag : " + queueTag);
+            serialToggle = (ToggleButton) findViewById(R.id.serialToggle);
+            serialToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    // if toggle is pressed, add items in a serial manner
+                    if (isChecked) {
+                        serial = true;
+                    } else {
+                        serial = false;
+                    }
+                }
+            });
+
             if (queueTag.equals("1")) {
-                Log.i("itemQueue ", " adding to " + next);
-                next.nextItem = itemToQueue;
+                Log.i("itemQueue ", " adding to " + newItem);
+                // use a method that will check if anything else already points to itemToQueue
+
+                newItem.setNextItem(itemToQueue);
+                //next.nextItem = itemToQueue;
             } else if (queueTag.equals("2")) {
                 Log.i("itemQueue ", " adding to " + itemToQueue);
-                itemToQueue.nextItem = next;
+                itemToQueue.setNextItem(newItem);
             }
 
             // add the completed item to the list
-            Log.i("Adding item", next.toString());
-            itemList.add(next);
+            Log.i("Adding item", newItem.toString());
+            itemList.add(newItem);
             // reset the add item text boxes
             itemInfoName.setText(null);
             itemInfoName.clearFocus();
@@ -400,9 +402,9 @@ public class MainActivity extends AppCompatActivity {
         timerItem sauce = new timerItem("Mincemeat & Sauce", 300, 0);
         mince.nextItem = sauce;
 //        timerItem bacon = new timerItem("Bacon", 300, 0);
-        itemList.add(pasta);
-        itemList.add(mince);
-        itemList.add(sauce);
+//        itemList.add(pasta);
+//        itemList.add(mince);
+//        itemList.add(sauce);
 //        itemList.add(bacon);
 
         sortMyList();
@@ -414,15 +416,13 @@ public class MainActivity extends AppCompatActivity {
         itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                // store which item from the list has been long pressed
                 itemLongPressedPosition = position;
                 itemLongPressed = itemList.get(position);
                 Log.i("Long Press on", " " + itemLongPressedPosition);
 
-                // set edit or delete to visible
-                editOrDelete.setTranslationY(-1500f);
+                // set editOrDelete to visible so user can choose which to do
                 editOrDelete.setVisibility(View.VISIBLE);
-                editOrDelete.animate().translationYBy(1100f).setDuration(500);
-
                 return true;
             }
         });
@@ -430,7 +430,6 @@ public class MainActivity extends AppCompatActivity {
         itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.i("Short Press on", " " + position);
                 Log.i("Item :", " " + (itemList.get(position)));
 
                 //check if choosing a queue it in add item
@@ -439,21 +438,31 @@ public class MainActivity extends AppCompatActivity {
                     showItemInfo(view);
                     choosingQueueItem = false;
                 } else
-
-                    // if clicking an item that is pausing the main timer, restart the timer on this time
+                    // toggle the Pause timer state on a single tap
                     if ((itemList.get(position).isPausingMainTimer())) {
                         Log.i("Item pressed", "was pausing Main Timer");
-                        (itemList.get(position)).setPauseTimer(false);
+                        // if clicking an item that is pausing the main timer, restart the timer on this time
                         itemList.get(position).setPausingMainTimer(false);
-                        countDownTimer.cancel();
-                        //startTimer((itemList.get(position).milliSecondsLeft) + (itemList.get(position).finishBy));
-                        Log.i("Resuming Timer ", "from " + mainTimerView);
-                        startTimer(mainTimerView);
+
+                        // pause anything equal or less than the paused item
+                        unpauseAll((itemList.get(position)).getTotalTime());
+                        // to pause this item, when it's time is the same as others, but
+                        // to avoide pausing all that might be running at the same time
+                        // the pauseAll method pauses those that are less than this time
+                        // so we also need to pause the actual item pressed
+                        (itemList.get(position)).setPauseTimer(false);
+
+
+//                        countDownTimer.cancel();
+//                        Log.i("Resuming Timer ", "from " + mainTimerView);
+//                        startTimer(mainTimerView);
                     } else {
-                        // toggle the Pause timer state on a single tap
                         Log.i("Item pressed", "was not pausing Main Timer");
-                        (itemList.get(position)).setPauseTimer(true);
+
                         (itemList.get(position)).setPausingMainTimer(true);
+                        pauseAll((itemList.get(position)).getTotalTime());
+                        (itemList.get(position)).setPauseTimer(true);
+
                         // set flag to pause main timer?
                         mainTimerIsPaused = true;
                     }
@@ -500,6 +509,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void pauseAll(long milliseconds) {
+        for (timerItem item : itemList) {
+            if (item.getTotalTime() < milliseconds) {
+                item.setPauseTimer(true);
+            }
+        }
+    }
+
+    public void unpauseAll(long milliseconds) {
+        for (timerItem item : itemList) {
+            if (item.getTotalTime() <= milliseconds) {
+                item.setPauseTimer(false);
+            }
+        }
+    }
+
     public void deletePressed(View view) {
         editOrDelete.setVisibility(View.INVISIBLE);
         removeItem(itemLongPressed);
@@ -513,15 +538,15 @@ public class MainActivity extends AppCompatActivity {
         itemInfoName = (EditText) findViewById(itemName);
         itemInfoName.setText(itemList.get(itemLongPressedPosition).getName());
 
-        itemTime = (int)itemList.get(itemLongPressedPosition).getMilliSeconds()/1000;
+        itemTime = (int) itemList.get(itemLongPressedPosition).getMilliSeconds() / 1000;
 
-        finishBy = (int)itemList.get(itemLongPressedPosition).getFinishBy()/1000;
+        finishBy = (int) itemList.get(itemLongPressedPosition).getFinishBy() / 1000;
         editOrDelete.setVisibility(View.INVISIBLE);
         itemTimeSeekBar.setProgress(itemTime);
         finishBySeekBar.setProgress(finishBy);
 
         // keep the nextItem for the edited item
-        queueTag="1";
+        queueTag = "1";
         itemToQueue = itemLongPressed.nextItem;
 
         showItemInfo(view);

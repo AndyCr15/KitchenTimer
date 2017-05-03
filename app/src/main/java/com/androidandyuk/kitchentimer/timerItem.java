@@ -1,5 +1,9 @@
 package com.androidandyuk.kitchentimer;
 
+import android.util.Log;
+
+import static com.androidandyuk.kitchentimer.MainActivity.itemList;
+import static com.androidandyuk.kitchentimer.MainActivity.serial;
 import static com.androidandyuk.kitchentimer.MainActivity.timeViewStyle;
 
 /**
@@ -30,10 +34,10 @@ public class timerItem implements Comparable<timerItem> {
     public String toString() {
         String message;
 
-        message = "" + name + " for " + timeInMinutes(milliSecondsLeft, timeViewStyle) + " minutes";
+        message = "" + name + " for " + timeInMinutes(milliSecondsLeft, timeViewStyle);
 
         if (finishBy > 0) {
-            message += ", to be finished with " + timeInMinutes(finishByLeft, timeViewStyle) + " minutes to go";
+            message += ", to be finished with " + timeInMinutes(finishByLeft, timeViewStyle) + " to go";
         }
 
         // add the next item onto the display nemae
@@ -58,13 +62,38 @@ public class timerItem implements Comparable<timerItem> {
         String value = "0m 0s";
 
         //varry the output based on the setting
-        switch(style){
-            case 0: value = mins + ":" + secs + " mins";
+        switch (style) {
+            case 0:
+                value = mins + ":" + secs + " min";
+                if (milliSeconds / 60000 > 1) {
+                    value += "s";
+                }
                 break;
-            case 1: value = mins + "m " + " " +secs + "s";
+            case 1:
+                value = mins + " min";
+                if (milliSeconds / 60000 > 1) {
+                    value += "s";
+                }
+                if (intSecs > 0) {
+                    value += " " + secs + " secs";
+                }
                 break;
         }
         return value;
+    }
+
+    public long getTotalTime() {
+        Long amount = this.milliSecondsLeft + this.finishByLeft;
+        if (this.nextItem != null) {
+            amount += this.nextItem.getTotalTime();
+        }
+        return amount;
+    }
+
+    @Override
+    public int compareTo(timerItem o) {
+        // negative means the incoming is greater, positive means the this is greater
+        return (int) this.getTotalTime() - (int) o.getTotalTime();
     }
 
     public timerItem getNextItem() {
@@ -72,6 +101,31 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public void setNextItem(timerItem nextItem) {
+        Log.i("setNextItem", "" + nextItem);
+        // Get state of the toggle button;
+        Log.i("Toggle State", "" + serial);
+        // code to check if it's already being pointed to
+        for (timerItem item : itemList) {
+            // check both have nextItems, they can't be a match if one is empty!
+            Log.i("itemList size", "" + itemList.size());
+            if (item.nextItem != null && nextItem != null) {
+                if (item.nextItem.compareTo(nextItem) == 0) {
+                    Log.i("setNextItem", "Match Found");
+                    if(serial){
+                        // what to do if serial is slected
+                        item.nextItem = this;
+                        this.nextItem = nextItem;
+                        return;
+                    } else {
+                        // what to do if parallel is selected
+                        this.nextItem = nextItem;
+                        return;
+                    }
+
+                }
+            }
+        }
+        Log.i("setNextItem", "No Matches Found");
         this.nextItem = nextItem;
     }
 
@@ -121,23 +175,5 @@ public class timerItem implements Comparable<timerItem> {
 
     public void setFinishBy(int finishBy) {
         this.finishBy = finishBy;
-    }
-
-    public long getTotalTime() {
-        Long amount = this.milliSecondsLeft + this.finishByLeft;
-        if (this.nextItem != null) {
-            amount += this.nextItem.getTotalTime();
-        }
-        return amount;
-    }
-
-    public void setTotalTime(int totalTime) {
-        this.totalTime = totalTime;
-    }
-
-    @Override
-    public int compareTo(timerItem o) {
-        // negative means the incoming is greater, positive means the this is greater
-        return (int) this.getTotalTime() - (int) o.getTotalTime();
     }
 }
