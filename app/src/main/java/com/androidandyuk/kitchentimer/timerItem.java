@@ -1,5 +1,7 @@
 package com.androidandyuk.kitchentimer;
 
+import static com.androidandyuk.kitchentimer.MainActivity.timeViewStyle;
+
 /**
  * Created by AndyCr15 on 26/04/2017.
  */
@@ -28,10 +30,10 @@ public class timerItem implements Comparable<timerItem> {
     public String toString() {
         String message;
 
-        message = "" + name + " for " + timeInMinutes(milliSecondsLeft) + " minutes";
+        message = "" + name + " for " + timeInMinutes(milliSecondsLeft, timeViewStyle) + " minutes";
 
         if (finishBy > 0) {
-            message += ", to be finished with " + timeInMinutes(finishByLeft) + " minutes to go";
+            message += ", to be finished with " + timeInMinutes(finishByLeft, timeViewStyle) + " minutes to go";
         }
 
         // add the next item onto the display nemae
@@ -46,14 +48,23 @@ public class timerItem implements Comparable<timerItem> {
         return message;
     }
 
-    public String timeInMinutes(long milliSeconds) {
+    public static String timeInMinutes(long milliSeconds, int style) {
         String mins = Long.toString(milliSeconds / 60000);
         int intSecs = (int) (milliSeconds % 60000) / 1000;
         String secs = Integer.toString(intSecs);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
-        return mins + ":" + secs;
+        String value = "0m 0s";
+
+        //varry the output based on the setting
+        switch(style){
+            case 0: value = mins + ":" + secs + " mins";
+                break;
+            case 1: value = mins + "m " + " " +secs + "s";
+                break;
+        }
+        return value;
     }
 
     public timerItem getNextItem() {
@@ -81,7 +92,7 @@ public class timerItem implements Comparable<timerItem> {
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
     public boolean isPauseTimer() {

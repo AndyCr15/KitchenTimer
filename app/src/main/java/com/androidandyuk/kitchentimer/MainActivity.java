@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.androidandyuk.kitchentimer.R.id.itemName;
+
 public class MainActivity extends AppCompatActivity {
 
     ListView itemListView;
@@ -45,16 +47,29 @@ public class MainActivity extends AppCompatActivity {
 
     long longestTimer;
     long mainTimerView;
+
+    // used to store what item might be being edited or deleted
+    int itemLongPressedPosition = 0;
+    timerItem itemLongPressed;
+
     Button timerButton;
     Button buttonBefore;
     Button buttonAfter;
+    View itemInfo;
+    View editOrDelete;
+    EditText itemInfoName;
+    SeekBar itemTimeSeekBar;
+    SeekBar finishBySeekBar;
+
     CountDownTimer countDownTimer;
     MediaPlayer mplayer;
     // for the seekbars when adding a new item
     int itemTime = 120;
     int finishBy;
+
+    //some settings
     int maxTime = 1500;
-    //the add item layout is not showing to begin with
+    public static int timeViewStyle = 1;
 
     PowerManager.WakeLock wl;
 
@@ -94,8 +109,8 @@ public class MainActivity extends AppCompatActivity {
         mainTimerView = longestTimer;
 
         if (!mainTimerIsPaused) {
-            Log.i("Timer started : ", "" + Long.valueOf(milliSeconds) / 1000);
-            soundAlarm("Timer started : " + timeInMinutes(milliSeconds), 0);
+            Log.i("Timer started : ", "" + Long.valueOf(longestTimer) / 1000);
+            soundAlarm("Timer started : " + timerItem.timeInMinutes(longestTimer, timeViewStyle), 0);
         }
 
         Log.i("Main Timer", "Setting Pause as False");
@@ -106,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
 
-                timerButton.setText("Total time " + timeInMinutes(mainTimerView) + " (Press to Reset)");
+                timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle) + " (Press to Reset)");
                 mainTimerView -= 250;
 
                 // every quarter of a second run this loop for each item in the list
@@ -120,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
                     if ((mainTimerView == item.getTotalTime()) && (!item.hasStarted) && !mainTimerIsPaused) {
                         Log.i("Starting New Item", "" + item.getName());
                         //start a new timer up, send the message
-                        soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.milliSeconds), 1);
+                        soundAlarm("Put " + item.getName() + " in for " + timerItem.timeInMinutes(item.milliSeconds, timeViewStyle), 1);
                         item.hasStarted = true;
                     }
 
@@ -202,31 +217,40 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public String timeInMinutes(long milliSeconds) {
+    public String timeInMinutes(long milliSeconds, int style) {
         String mins = Long.toString(milliSeconds / 60000);
         int intSecs = (int) (milliSeconds % 60000) / 1000;
         String secs = Integer.toString(intSecs);
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
-        return mins + ":" + secs;
+        String value = "0m 0s";
+
+        //varry the output based on the setting
+        switch (style) {
+            case 0:
+                value = mins + ":" + secs + " mins";
+                break;
+            case 1:
+                value = mins + "m " + " " + secs + "s";
+                break;
+        }
+        return value;
     }
 
-    public void showAddItem(View view) {
+    public void showItemInfo(View view) {
         if (!showingAddItem) {
             showingAddItem = true;
-            View addItem = findViewById(R.id.ItemInfo);
 
-            addItem.setTranslationY(-1500f);
-            addItem.setVisibility(View.VISIBLE);
-            addItem.animate().translationYBy(1100f).setDuration(500);
+            itemInfo.setTranslationY(-1500f);
+            itemInfo.setVisibility(View.VISIBLE);
+            itemInfo.animate().translationYBy(1100f).setDuration(500);
         }
     }
 
-    public void hideAddItem(View view) {
+    public void hideItemInfo(View view) {
         Log.i("Add Item View ", "Hiding");
-        View addItem = findViewById(R.id.ItemInfo);
-        addItem.setVisibility(View.INVISIBLE);
+        itemInfo.setVisibility(View.INVISIBLE);
         showingAddItem = false;
 
     }
@@ -269,37 +293,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void addItem(View view) {
 
-        EditText itemName = (EditText) findViewById(R.id.itemName);
-//        EditText displayItemTime = (EditText) findViewById(R.id.itemTime);
-//        EditText displayItemFinish = (EditText) findViewById(R.id.finishTime);
-//
-//        displayItemTime.setText(timeInMinutes((long)itemTime*1000));
+        itemInfoName = (EditText) findViewById(itemName);
 
         // check details are entered
-        if (itemName.length() == 0 || itemName.equals("") || itemTime == 0) {
+        if (itemInfoName.length() == 0 || itemInfoName.equals("") || itemTime == 0) {
             Toast.makeText(getApplicationContext(), "Enter item details",
                     Toast.LENGTH_SHORT).show();
         } else {
             // details are there, so lets add an item to the list
-            Log.i("Item Added ", itemName.getText().toString());
+            Log.i("Item Added ", itemInfoName.getText().toString());
             Log.i("Item Added ", "" + itemTime);
             Log.i("Item Added ", "" + finishBy);
 
-            // read how many seconds the timer needs
-
-//            int finish;
-//
-//            String value2 = itemFinishSeekBar.getText().toString();
-//
-//            // finish time (gap befor end of cooking) can be left blank, so 'try' used
-//            try {
-//                finish = Integer.parseInt(value2);
-//            } catch (Exception e) {
-//                finish = 0;
-//            }
-
             // create the timerItem object
-            timerItem next = new timerItem(itemName.getText().toString(), itemTime, finishBy);
+            timerItem next = new timerItem(itemInfoName.getText().toString(), itemTime, finishBy);
             // check if the item needs to be before or after anything else
             Log.i("Adding Item", "queue tag : " + queueTag);
             if (queueTag.equals("1")) {
@@ -314,12 +321,8 @@ public class MainActivity extends AppCompatActivity {
             Log.i("Adding item", next.toString());
             itemList.add(next);
             // reset the add item text boxes
-            itemName.setText(null);
-//            itemTimeSeekBar.setText(null);
-//            itemFinishSeekBar.setText(null);
-            itemName.clearFocus();
-//            itemTimeSeekBar.clearFocus();
-//            itemFinishSeekBar.clearFocus();
+            itemInfoName.setText(null);
+            itemInfoName.clearFocus();
 
             // drops the keyboard out of view, now the item is added
             if (view != null) {
@@ -330,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
         // refreshes the list of items
         sortMyList();
         // hide the layout for adding an item
-        hideAddItem(view);
+        hideItemInfo(view);
         //reset queueTag for next item to add
         queueTag = "0";
     }
@@ -350,7 +353,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("Queue Item", " Tag : " + queueTag);
         Toast.makeText(MainActivity.this, "Choose which item", Toast.LENGTH_SHORT).show();
         choosingQueueItem = true;
-        hideAddItem(view);
+        hideItemInfo(view);
     }
 
 
@@ -366,22 +369,24 @@ public class MainActivity extends AppCompatActivity {
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
 
+        itemInfo = findViewById(R.id.ItemInfo);
+        editOrDelete = findViewById(R.id.editOrDelete);
+
         itemListView = (ListView) findViewById(R.id.itemListView);
         timerButton = (Button) findViewById(R.id.timerButton);
         timerButton.setText("Start Timer");
 
         itemTimeView = (TextView) findViewById(R.id.itemTime);
-        itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000) + " MINS");
-//        itemFinishView.setText("CUSHION : " + timeInMinutes((long)finishBy*1000) + " MINS");
+        itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
 
         itemFinishView = (TextView) findViewById(R.id.finishTime);
-        itemFinishView.setText(timeInMinutes((long) finishBy));
+        itemFinishView.setText(timerItem.timeInMinutes((long) finishBy, timeViewStyle));
 
         buttonBefore = (Button) findViewById(R.id.buttonBefore);
         buttonAfter = (Button) findViewById(R.id.buttonAfter);
 
-        SeekBar itemTimeSeekBar = (SeekBar) findViewById(R.id.itemTimeSeekBar);
-        SeekBar finishBySeekBar = (SeekBar) findViewById(R.id.finshBySeekBar);
+        itemTimeSeekBar = (SeekBar) findViewById(R.id.itemTimeSeekBar);
+        finishBySeekBar = (SeekBar) findViewById(R.id.finshBySeekBar);
 
         itemTimeSeekBar.setMax(maxTime);
         itemTimeSeekBar.setProgress(itemTime);
@@ -409,13 +414,15 @@ public class MainActivity extends AppCompatActivity {
         itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-                Log.i("Long Press on", " " + position);
-                Toast.makeText(MainActivity.this, "Removing " + itemList.get(position), Toast.LENGTH_SHORT).show();
-                removeFromQueue(itemList.get(position));
-                Log.i("Remove Item", "Queue references removed");
-                itemList.remove(position);
-                Log.i("Remove Item", "item removed");
-                sortMyList();
+                itemLongPressedPosition = position;
+                itemLongPressed = itemList.get(position);
+                Log.i("Long Press on", " " + itemLongPressedPosition);
+
+                // set edit or delete to visible
+                editOrDelete.setTranslationY(-1500f);
+                editOrDelete.setVisibility(View.VISIBLE);
+                editOrDelete.animate().translationYBy(1100f).setDuration(500);
+
                 return true;
             }
         });
@@ -429,7 +436,7 @@ public class MainActivity extends AppCompatActivity {
                 //check if choosing a queue it in add item
                 if (choosingQueueItem) {
                     itemToQueue = (itemList.get(position));
-                    showAddItem(view);
+                    showItemInfo(view);
                     choosingQueueItem = false;
                 } else
 
@@ -458,7 +465,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //                Log.i("Item Time SeekBar value", Integer.toString(progress));
                 itemTime = ((progress / 10) * 10);
-                itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000) + " MINS");
+                itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
             }
 
             @Override
@@ -477,7 +484,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //                Log.i("Finish SeekBar value", Integer.toString(progress));
                 finishBy = ((progress / 10) * 10);
-                itemFinishView.setText("CUSHION : " + timeInMinutes((long) finishBy * 1000) + " MINS");
+                itemFinishView.setText("CUSHION : " + timerItem.timeInMinutes((long) finishBy * 1000, timeViewStyle));
             }
 
             @Override
@@ -493,6 +500,44 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void deletePressed(View view) {
+        editOrDelete.setVisibility(View.INVISIBLE);
+        removeItem(itemLongPressed);
+    }
+
+    public void editPressed(View view) {
+        Log.i("Editing item", " " + itemList.get(itemLongPressedPosition));
+        editOrDelete.setVisibility(View.INVISIBLE);
+
+        // setting all info in the editInfo box to be that of the item to be edited
+        itemInfoName = (EditText) findViewById(itemName);
+        itemInfoName.setText(itemList.get(itemLongPressedPosition).getName());
+
+        itemTime = (int)itemList.get(itemLongPressedPosition).getMilliSeconds()/1000;
+
+        finishBy = (int)itemList.get(itemLongPressedPosition).getFinishBy()/1000;
+        editOrDelete.setVisibility(View.INVISIBLE);
+        itemTimeSeekBar.setProgress(itemTime);
+        finishBySeekBar.setProgress(finishBy);
+
+        // keep the nextItem for the edited item
+        queueTag="1";
+        itemToQueue = itemLongPressed.nextItem;
+
+        showItemInfo(view);
+        // now all info is copied into editInfo, remove the item
+        removeItem(itemLongPressed);
+    }
+
+    public void removeItem(timerItem item) {
+        Toast.makeText(MainActivity.this, "Removing " + item, Toast.LENGTH_SHORT).show();
+        removeFromQueue(item);
+        Log.i("Remove Item", "Queue references removed");
+        itemList.remove(item);
+        Log.i("Remove Item", "item removed");
+        sortMyList();
+    }
+
     public void removeFromQueue(timerItem item) {
         Log.i("Removing", item + " from all queues.");
         for (timerItem checkedItem : itemList) {
@@ -501,7 +546,13 @@ public class MainActivity extends AppCompatActivity {
                 if (item.compareTo(checkedItem.nextItem) == 0) {
                     //match found, remove the item
                     Log.i("Removing", "Found a match");
-                    checkedItem.nextItem = null;
+                    if (checkedItem.nextItem == null) {
+                        checkedItem.nextItem = null;
+                    } else {
+                        // item had a nextItem, so set it to it's own nextItem
+                        // effectively skipping over the removed item
+                        checkedItem.nextItem = checkedItem.nextItem.nextItem;
+                    }
                 }
             }
         }
