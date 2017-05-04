@@ -21,6 +21,7 @@ public class timerItem implements Comparable<timerItem> {
     boolean pausingMainTimer = false;
     boolean hasStarted = false;
     timerItem nextItem = null;
+    String note;
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;

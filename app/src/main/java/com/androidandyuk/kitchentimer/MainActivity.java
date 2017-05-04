@@ -9,6 +9,7 @@ import android.os.PowerManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -23,6 +24,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
+import com.google.firebase.analytics.FirebaseAnalytics;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +36,10 @@ import java.util.List;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
 
 public class MainActivity extends AppCompatActivity {
+
+    private FirebaseAnalytics mFirebaseAnalytics;
+    private static final String TAG = "MainActivity";
+    private AdView mAdView;
 
     ListView itemListView;
     TextView itemTimeView;
@@ -123,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTick(long millisUntilFinished) {
 
+                sortMyList();
+                Log.i("Longest Timer", "" + longestTimer);
+                Log.i("Main Timer", "" + mainTimerView);
+                Log.i("Last Timer", "" + itemList.get(0).getTotalTime());
+                Log.i("Main Timer", "" + mainTimerIsPaused);
+
                 timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
 
@@ -137,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                     if ((mainTimerView == item.getTotalTime()) && (!item.hasStarted) && !mainTimerIsPaused) {
                         Log.i("Starting New Item", "" + item.getName());
                         //start a new timer up, send the message
-                        soundAlarm("Put " + item.getName() + " in for " + timerItem.timeInMinutes(item.milliSeconds, timeViewStyle), 1);
+                        soundAlarm("Put " + item.getName() + " in for " + timerItem.timeInMinutes(item.milliSeconds, timeViewStyle) + item.note, 1);
                         item.hasStarted = true;
                     }
 
@@ -159,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
                         if (item.milliSecondsLeft == 0) {
                             // what to do when an item is ready
                             Log.i("Item Ready", "" + item.getName());
-                            soundAlarm("Remove " + item.getName(), 2);
+                            soundAlarm("Remove " + item.getName() + item.note, 2);
                             item.milliSecondsLeft -= 1;
                         }
 
@@ -210,7 +226,6 @@ public class MainActivity extends AppCompatActivity {
         countDownTimer.cancel();
         timerIsActive = false;
         showingAddItem = false;
-        mainTimerIsPaused = false;
         mediaPlayerPlaying = false;
         choosingQueueItem = false;
         queueTag = "0";
@@ -231,9 +246,9 @@ public class MainActivity extends AppCompatActivity {
         if (!showingAddItem) {
             showingAddItem = true;
 
-            itemInfo.setTranslationY(-1500f);
+
             itemInfo.setVisibility(View.VISIBLE);
-            itemInfo.animate().translationYBy(1100f).setDuration(500);
+
         }
     }
 
@@ -368,10 +383,19 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
 
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        MobileAds.initialize(getApplicationContext());
+
+        mAdView = (AdView) findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
 
         itemInfo = findViewById(R.id.ItemInfo);
+        itemInfo.animate().translationY(-300f).setDuration(50);
         editOrDelete = findViewById(R.id.editOrDelete);
 
         itemListView = (ListView) findViewById(R.id.itemListView);
@@ -397,10 +421,11 @@ public class MainActivity extends AppCompatActivity {
 //        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
 
         // add default items
-        timerItem pasta = new timerItem("Pasta", 660, 60);
-        timerItem mince = new timerItem("Mincemeat", 300, 0);
-        timerItem sauce = new timerItem("Mincemeat & Sauce", 300, 0);
+        timerItem pasta = new timerItem("Pasta", 10, 0);
+        timerItem mince = new timerItem("Mincemeat", 10, 0);
+        timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
         mince.nextItem = sauce;
+        pasta.nextItem = sauce;
 //        timerItem bacon = new timerItem("Bacon", 300, 0);
 //        itemList.add(pasta);
 //        itemList.add(mince);
@@ -456,6 +481,7 @@ public class MainActivity extends AppCompatActivity {
 //                        countDownTimer.cancel();
 //                        Log.i("Resuming Timer ", "from " + mainTimerView);
 //                        startTimer(mainTimerView);
+                        mainTimerIsPaused = false;
                     } else {
                         Log.i("Item pressed", "was not pausing Main Timer");
 
@@ -581,6 +607,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            moveTaskToBack(true);
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     @Override
