@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     TextView itemTimeView;
     TextView itemFinishView;
 
+    public static boolean isInForeground;
     static List<timerItem> itemList = new ArrayList<>();
     boolean timerIsActive = false;
     boolean showingAddItem = false;
@@ -134,10 +135,6 @@ public class MainActivity extends AppCompatActivity {
             public void onTick(long millisUntilFinished) {
 
                 sortMyList();
-                Log.i("Longest Timer", "" + longestTimer);
-                Log.i("Main Timer", "" + mainTimerView);
-                Log.i("Last Timer", "" + itemList.get(0).getTotalTime());
-                Log.i("Main Timer", "" + mainTimerIsPaused);
 
                 timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
@@ -281,6 +278,7 @@ public class MainActivity extends AppCompatActivity {
             mplayer.start();
             mediaPlayerPlaying = true;
         }
+
     }
 
     public void closeMessage(View view) {
@@ -393,6 +391,7 @@ public class MainActivity extends AppCompatActivity {
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
+
 
         itemInfo = findViewById(R.id.ItemInfo);
         itemInfo.animate().translationY(-300f).setDuration(50);
@@ -627,6 +626,20 @@ public class MainActivity extends AppCompatActivity {
 
         savedInstanceState.putBoolean("timerIsActive", timerIsActive);
         savedInstanceState.putBoolean("showingAddItem", showingAddItem);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isInForeground = true;
+        Log.i("onResume", "Setting Foreground to " + isInForeground);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isInForeground = false;
+        Log.i("onResume", "Setting Foreground to " + isInForeground);
     }
 }
 

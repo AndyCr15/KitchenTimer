@@ -21,7 +21,7 @@ public class timerItem implements Comparable<timerItem> {
     boolean pausingMainTimer = false;
     boolean hasStarted = false;
     timerItem nextItem = null;
-    String note;
+    String note = "";
 
     public timerItem(String name, int seconds, int finishBy) {
         this.name = name;
@@ -60,7 +60,7 @@ public class timerItem implements Comparable<timerItem> {
         if (secs.length() < 2) {
             secs = "0" + secs;
         }
-        String value = "0m 0s";
+        String value="";
 
         //varry the output based on the setting
         switch (style) {
@@ -71,7 +71,10 @@ public class timerItem implements Comparable<timerItem> {
                 }
                 break;
             case 1:
-                value = mins + " min";
+                value = "";
+                if (!mins.equals("0")) {
+                    value = mins + " min";
+                }
                 if (milliSeconds / 60000 > 1) {
                     value += "s";
                 }
@@ -112,7 +115,7 @@ public class timerItem implements Comparable<timerItem> {
             if (item.nextItem != null && nextItem != null) {
                 if (item.nextItem.compareTo(nextItem) == 0) {
                     Log.i("setNextItem", "Match Found");
-                    if(serial){
+                    if (serial) {
                         // what to do if serial is slected
                         item.nextItem = this;
                         this.nextItem = nextItem;

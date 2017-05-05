@@ -1,0 +1,50 @@
+{
+  "project_info": {
+    "project_number": "269309021343",
+    "firebase_url": "https://kitchentimer-1bdd2.firebaseio.com",
+    "project_id": "kitchentimer-1bdd2",
+    "storage_bucket": "kitchentimer-1bdd2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269309021343:android:cc761af4e99779da",
+        "android_client_info": {
+          "package_name": "com.androidandyuk.kitchentimer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "269309021343-2o7obu54b2btulq8ce93sv102s23ggud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.androidandyuk.kitchentimer",
+            "certificate_hash": "4fc4e949725f2ecef655554c896ef128275e2d75"
+          }
+        },
+        {
+          "client_id": "269309021343-v2699l892vo0k5kibgpucppuja28nneu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfjNQ_si5jJTdS-KMlfIFuzN-BwOlLhyE"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
