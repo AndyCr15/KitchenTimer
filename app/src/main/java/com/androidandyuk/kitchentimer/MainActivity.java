@@ -1,6 +1,10 @@
 package com.androidandyuk.kitchentimer;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -36,6 +40,10 @@ import java.util.List;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
 
 public class MainActivity extends AppCompatActivity {
+
+    Notification notification;
+
+    NotificationManager notificationManager;
 
     private FirebaseAnalytics mFirebaseAnalytics;
     private static final String TAG = "MainActivity";
@@ -164,10 +172,14 @@ public class MainActivity extends AppCompatActivity {
 
                     // check item is in range and not paused, the main timer is not paused then take a quarter of a second off
                     if ((item.hasStarted) && !item.isPauseTimer()) {
+
                         if (item.milliSecondsLeft > 0) {
+
                             item.milliSecondsLeft -= 250;
+//                            Log.i("onTick", "ticking " + item.getName());
 
                         }
+
                         // check if an item is ready
                         if (item.milliSecondsLeft == 0) {
                             // what to do when an item is ready
@@ -188,6 +200,10 @@ public class MainActivity extends AppCompatActivity {
 
                             break;
                         }
+                    } else {
+
+//                        Log.i("onTick", "not ticking " + item.getName());
+
                     }
 
                 }
@@ -211,7 +227,9 @@ public class MainActivity extends AppCompatActivity {
                     resetTimer();
                     wl.release();
                 } else {
+                    resetTimer();
                     startTimer(360000);
+                    Log.i("onFinish","Starting new timer");
                 }
             }
         }.start();
@@ -277,6 +295,25 @@ public class MainActivity extends AppCompatActivity {
         if (soundNumber > 0) {
             mplayer.start();
             mediaPlayerPlaying = true;
+        }
+
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 1, intent, 0);
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+
+        if (!isInForeground) {
+            notification = new Notification.Builder(getApplicationContext())
+                    .setContentTitle("Kitchen Timer")
+                    .setContentText(message)
+                    .setContentIntent(pendingIntent)
+                    .setSmallIcon(android.R.drawable.sym_def_app_icon)
+                    .setAutoCancel(true)
+                    .build();
+
+
+            notificationManager.notify(1, notification);
         }
 
     }
@@ -381,6 +418,8 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
 
+        Log.i("onCreate","Starting");
+
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
         MobileAds.initialize(getApplicationContext());
@@ -420,14 +459,14 @@ public class MainActivity extends AppCompatActivity {
 //        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
 
         // add default items
-        timerItem pasta = new timerItem("Pasta", 10, 0);
-        timerItem mince = new timerItem("Mincemeat", 10, 0);
+        timerItem pasta = new timerItem("Pasta", 300, 0);
+        timerItem mince = new timerItem("Mincemeat", 290, 0);
         timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
-        mince.nextItem = sauce;
-        pasta.nextItem = sauce;
+//        mince.nextItem = sauce;
+//        pasta.nextItem = sauce;
 //        timerItem bacon = new timerItem("Bacon", 300, 0);
-//        itemList.add(pasta);
-//        itemList.add(mince);
+        itemList.add(pasta);
+        itemList.add(mince);
 //        itemList.add(sauce);
 //        itemList.add(bacon);
 
@@ -642,4 +681,3 @@ public class MainActivity extends AppCompatActivity {
         Log.i("onResume", "Setting Foreground to " + isInForeground);
     }
 }
-
