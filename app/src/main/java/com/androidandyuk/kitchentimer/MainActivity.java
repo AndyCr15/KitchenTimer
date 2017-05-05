@@ -22,6 +22,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -37,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static android.R.drawable.ic_media_pause;
+import static android.R.drawable.ic_media_play;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
 
 public class MainActivity extends AppCompatActivity {
@@ -55,6 +58,11 @@ public class MainActivity extends AppCompatActivity {
 
     public static boolean isInForeground;
     static List<timerItem> itemList = new ArrayList<>();
+
+    // to be able to backup the list, once, to be restored in reset
+    static List<timerItem> backupList = new ArrayList<>();
+    static boolean backupNeeded = true;
+
     boolean timerIsActive = false;
     boolean showingAddItem = false;
     boolean mainTimerIsPaused = false;
@@ -97,6 +105,18 @@ public class MainActivity extends AppCompatActivity {
     PowerManager.WakeLock wl;
 
     public void timerButtonPressed(View view) {
+
+        // if a backup has not been made (first press) then make a backup
+        // this needs to be set to true when something is added, edited or deleted.
+        if (backupNeeded) {
+            backupList.clear();
+            for (timerItem item : itemList) {
+                timerItem newItem = new timerItem(item);
+                Log.i("Backup list", "adding " + newItem);
+                backupList.add(newItem);
+            }
+            backupNeeded = false;
+        }
 
         if (timerIsActive) {
             //code for when the timer is already running
@@ -155,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // check if any new timers need to start
-                    if ((mainTimerView == item.getTotalTime()) && (!item.hasStarted) && !mainTimerIsPaused) {
+                    if ((mainTimerView == item.getTotalTime()) && (!item.hasStarted)) {
                         Log.i("Starting New Item", "" + item.getName());
                         //start a new timer up, send the message
                         soundAlarm("Put " + item.getName() + " in for " + timerItem.timeInMinutes(item.milliSeconds, timeViewStyle) + item.note, 1);
@@ -167,6 +187,7 @@ public class MainActivity extends AppCompatActivity {
                         //give 30 second warning
                         mplayer = MediaPlayer.create(getApplicationContext(), R.raw.blip);
                         mplayer.start();
+                        mediaPlayerPlaying = true;
                         Toast.makeText(MainActivity.this, "Get the " + item.getName() + " ready!", Toast.LENGTH_LONG).show();
                     }
 
@@ -210,9 +231,9 @@ public class MainActivity extends AppCompatActivity {
                 sortMyList();
                 if (mainTimerView <= 0) {
                     // timer has come to an end
+                    soundAlarm("Time to eat!", 2);
                     resetTimer();
                     wl.release();
-                    soundAlarm("Time to eat!", 1);
                 }
             }
 
@@ -229,15 +250,16 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     resetTimer();
                     startTimer(360000);
-                    Log.i("onFinish","Starting new timer");
+                    Log.i("onFinish", "Starting new timer");
                 }
             }
         }.start();
     }
 
     public void resetTimer() {
-        Log.i("Timer", "Reset!");
 
+        Log.i("Timer", "Reset!");
+        restoreBackup();
         countDownTimer.cancel();
         timerIsActive = false;
         showingAddItem = false;
@@ -246,15 +268,20 @@ public class MainActivity extends AppCompatActivity {
         queueTag = "0";
         itemLongPressedPosition = 0;
 
-        for (timerItem item : itemList) {
-            item.milliSecondsLeft = item.milliSeconds;
-            item.finishByLeft = item.finishBy;
-            item.setPausingMainTimer(false);
-            item.setPauseTimer(false);
-        }
         timerButton.setText("Start Timer");
-        sortMyList();
 
+    }
+
+    public void restoreBackup() {
+        // clear the list out and put the backup list back in place
+        Log.i("itemList", "Restoring backup");
+        itemList.clear();
+        for (timerItem item : backupList) {
+            timerItem newItem = new timerItem(item);
+            Log.i("Backup list", "restoring " + newItem);
+            itemList.add(newItem);
+        }
+        sortMyList();
     }
 
     public void showItemInfo(View view) {
@@ -276,6 +303,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void soundAlarm(String message, int soundNumber) {
         Log.i("Sound Alarm", "Method called");
+        if (mediaPlayerPlaying) {
+            Log.i("Media IS playing", message);
+            mplayer.stop();
+            mplayer.release();
+            mediaPlayerPlaying = false;
+        }
         TextView alarmMessage = (TextView) findViewById(R.id.alarmMessage);
         alarmMessage.setText(message);
         View messageLayout = findViewById(R.id.messageLayout);
@@ -284,11 +317,9 @@ public class MainActivity extends AppCompatActivity {
         // play alarm sound
         switch (soundNumber) {
             case 1:
-                Log.i("Switch", "Case 1");
                 mplayer = MediaPlayer.create(getBaseContext(), R.raw.alarm);
                 break;
             case 2:
-                Log.i("Switch", "Case 2");
                 mplayer = MediaPlayer.create(getBaseContext(), R.raw.siren);
                 break;
         }
@@ -301,7 +332,6 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 1, intent, 0);
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
 
         if (!isInForeground) {
             notification = new Notification.Builder(getApplicationContext())
@@ -331,6 +361,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void addItem(View view) {
+
+        // each time a new item is added, we would need a new backup of the list
+        backupNeeded = true;
 
         itemInfoName = (EditText) findViewById(itemName);
 
@@ -418,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
 
-        Log.i("onCreate","Starting");
+        Log.i("onCreate", "Starting");
 
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
@@ -459,8 +492,8 @@ public class MainActivity extends AppCompatActivity {
 //        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
 
         // add default items
-        timerItem pasta = new timerItem("Pasta", 300, 0);
-        timerItem mince = new timerItem("Mincemeat", 290, 0);
+        timerItem pasta = new timerItem("Pasta", 10, 0);
+        timerItem mince = new timerItem("Mincemeat", 10, 0);
         timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
 //        mince.nextItem = sauce;
 //        pasta.nextItem = sauce;
@@ -537,6 +570,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //                Log.i("Item Time SeekBar value", Integer.toString(progress));
+                // make 10 the minimum
+                progress += 10;
                 itemTime = ((progress / 10) * 10);
                 itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
             }
@@ -556,6 +591,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //                Log.i("Finish SeekBar value", Integer.toString(progress));
+                // make 10 the minimum
                 finishBy = ((progress / 10) * 10);
                 itemFinishView.setText("CUSHION : " + timerItem.timeInMinutes((long) finishBy * 1000, timeViewStyle));
             }
@@ -574,6 +610,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pauseAll(long milliseconds) {
+        // only actually pauses items with less time
         for (timerItem item : itemList) {
             if (item.getTotalTime() < milliseconds) {
                 item.setPauseTimer(true);
@@ -588,6 +625,29 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    public void pauseEverything(View view) {
+        // pause literally everything
+
+        ImageView pause  = (ImageView)findViewById(R.id.pauseButton);
+
+        pause.setImageResource(ic_media_play);
+
+        if (!mainTimerIsPaused) {
+            pauseAll(360001);
+            mainTimerIsPaused = true;
+            pause.setImageResource(ic_media_play);
+        } else {
+            unpauseAll(360001);
+            mainTimerIsPaused = false;
+            pause.setImageResource(ic_media_pause);
+        }
+    }
+
+    public void preferences(View view){
+        Toast.makeText(MainActivity.this, "Coming soon!", Toast.LENGTH_SHORT).show();
+    }
+
 
     public void deletePressed(View view) {
         editOrDelete.setVisibility(View.INVISIBLE);
@@ -619,6 +679,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void removeItem(timerItem item) {
+
+        // each time the list changes, a backup would be needed
+        backupNeeded = true;
+
         Toast.makeText(MainActivity.this, "Removing " + item, Toast.LENGTH_SHORT).show();
         removeFromQueue(item);
         Log.i("Remove Item", "Queue references removed");

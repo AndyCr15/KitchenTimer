@@ -15,7 +15,6 @@ public class timerItem implements Comparable<timerItem> {
     long milliSeconds;
     long finishBy;
     long finishByLeft;
-    long totalTime;
     long milliSecondsLeft;
     private boolean pauseTimer = false;
     boolean pausingMainTimer = false;
@@ -29,6 +28,14 @@ public class timerItem implements Comparable<timerItem> {
         this.milliSecondsLeft = milliSeconds;
         this.finishBy = (long) finishBy * 1000;
         this.finishByLeft = this.finishBy;
+    }
+
+    public timerItem(timerItem copy){
+        this.name = copy.name;
+        this.milliSeconds = copy.milliSeconds;
+        this.milliSecondsLeft = copy.milliSeconds;
+        this.finishBy = copy.finishBy;
+        this.finishByLeft = copy.finishBy;
     }
 
     @Override
