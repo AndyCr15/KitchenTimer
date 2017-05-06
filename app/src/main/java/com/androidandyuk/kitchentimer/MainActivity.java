@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     int finishBy;
 
     //some settings
-    int maxTime = 1500;
+    public int maxTime = 1500;
     public static int timeViewStyle = 1;
 
     PowerManager.WakeLock wl;
@@ -463,6 +463,12 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i("onCreate", "Starting");
 
+        Intent intent = getIntent();
+        maxTime = intent.getIntExtra("maxTime", maxTime);
+        warningsWanted = intent.getBooleanExtra("warningsWanted", warningsWanted);
+        Log.i("Max Time", "" + maxTime);
+        Log.i("Warnings Wanted", "" + warningsWanted);
+
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
         MobileAds.initialize(getApplicationContext());
@@ -508,8 +514,8 @@ public class MainActivity extends AppCompatActivity {
 //        mince.nextItem = sauce;
 //        pasta.nextItem = sauce;
 //        timerItem bacon = new timerItem("Bacon", 300, 0);
-            itemList.add(pasta);
-            itemList.add(mince);
+//            itemList.add(pasta);
+//            itemList.add(mince);
 //        itemList.add(sauce);
 //        itemList.add(bacon);
 
@@ -582,8 +588,11 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 //                Log.i("Item Time SeekBar value", Integer.toString(progress));
                 // make 10 the minimum
-                progress += 10;
+//                progress += 10;
                 itemTime = ((progress / 10) * 10);
+                if (itemTime == 0) {
+                    itemTime = 10;
+                }
                 itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
             }
 
@@ -622,9 +631,9 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void pauseAll(long milliseconds) {
-        // only actually pauses items with less time
+        // only actually pauses items with less time that haven't started
         for (timerItem item : itemList) {
-            if (item.getTotalTime() < milliseconds) {
+            if (item.getTotalTime() < milliseconds && !item.hasStarted) {
                 item.setPauseTimer(true);
             }
         }
@@ -646,11 +655,19 @@ public class MainActivity extends AppCompatActivity {
         pause.setImageResource(ic_media_play);
 
         if (!mainTimerIsPaused) {
-            pauseAll(360001);
+            for (timerItem item : itemList) {
+
+                    item.setPauseTimer(true);
+
+            }
             mainTimerIsPaused = true;
             pause.setImageResource(R.drawable.play);
         } else {
-            unpauseAll(360001);
+            for (timerItem item : itemList) {
+
+                item.setPauseTimer(false);
+
+            }
             mainTimerIsPaused = false;
             pause.setImageResource(R.drawable.pause);
         }
@@ -660,6 +677,9 @@ public class MainActivity extends AppCompatActivity {
 
         if (!timerIsActive) {
             Intent intent = new Intent(getApplicationContext(), settings.class);
+
+            intent.putExtra("maxTime", maxTime);
+            intent.putExtra("warningsWanted", warningsWanted);
 
             startActivity(intent);
         } else {

@@ -30,12 +30,13 @@ public class timerItem implements Comparable<timerItem> {
         this.finishByLeft = this.finishBy;
     }
 
-    public timerItem(timerItem copy){
+    public timerItem(timerItem copy) {
         this.name = copy.name;
         this.milliSeconds = copy.milliSeconds;
         this.milliSecondsLeft = copy.milliSeconds;
         this.finishBy = copy.finishBy;
         this.finishByLeft = copy.finishBy;
+        this.nextItem = copy.nextItem;
     }
 
     @Override
