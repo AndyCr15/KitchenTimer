@@ -10,12 +10,10 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.PowerManager;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -38,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static android.R.drawable.ic_media_pause;
 import static android.R.drawable.ic_media_play;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
 
@@ -57,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     TextView itemFinishView;
 
     public static boolean isInForeground;
+    public static boolean hasOnCreateRun = false;
+
     static List<timerItem> itemList = new ArrayList<>();
 
     // to be able to backup the list, once, to be restored in reset
@@ -163,6 +162,9 @@ public class MainActivity extends AppCompatActivity {
             public void onTick(long millisUntilFinished) {
 
                 sortMyList();
+                if (longestTimer < mainTimerView) {
+                    mainTimerView = longestTimer;
+                }
 
                 timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
@@ -184,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // check for 30 second warning of new item
                     if (((mainTimerView - warningTime) == item.getTotalTime()) && (!item.hasStarted) && warningsWanted) {
-                        //give 30 second warning
+                        //give 30 second warning but only with a toast, so not sent to alarmMessage
                         mplayer = MediaPlayer.create(getApplicationContext(), R.raw.blip);
                         mplayer.start();
                         mediaPlayerPlaying = true;
@@ -263,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
         countDownTimer.cancel();
         timerIsActive = false;
         showingAddItem = false;
-        mediaPlayerPlaying = false;
+        //mediaPlayerPlaying = false;
         choosingQueueItem = false;
         queueTag = "0";
         itemLongPressedPosition = 0;
@@ -302,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void soundAlarm(String message, int soundNumber) {
-        Log.i("Sound Alarm", "Method called");
+        Log.i("Sound Alarm", message);
         if (mediaPlayerPlaying) {
             Log.i("Media IS playing", message);
             mplayer.stop();
@@ -328,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayerPlaying = true;
         }
 
+        // check if the app is in the foreground, if not, use a notification to alert user
         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 1, intent, 0);
@@ -341,7 +344,6 @@ public class MainActivity extends AppCompatActivity {
                     .setSmallIcon(android.R.drawable.sym_def_app_icon)
                     .setAutoCancel(true)
                     .build();
-
 
             notificationManager.notify(1, notification);
         }
@@ -366,6 +368,12 @@ public class MainActivity extends AppCompatActivity {
         backupNeeded = true;
 
         itemInfoName = (EditText) findViewById(itemName);
+        itemInfoName.requestFocus();
+        itemInfoName.setSelection(itemInfoName.getText().length());
+
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
+
 
         // check details are entered
         if (itemInfoName.length() == 0 || itemInfoName.equals("") || itemTime == 0) {
@@ -411,7 +419,7 @@ public class MainActivity extends AppCompatActivity {
 
             // drops the keyboard out of view, now the item is added
             if (view != null) {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
             }
         }
@@ -447,9 +455,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.hide();
+
+
+//        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+//        ActionBar actionBar = getSupportActionBar();
+//        actionBar.hide();
 
         Log.i("onCreate", "Starting");
 
@@ -466,7 +476,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         itemInfo = findViewById(R.id.ItemInfo);
-        itemInfo.animate().translationY(-300f).setDuration(50);
+        itemInfo.animate().translationY(-400f).setDuration(50);
         editOrDelete = findViewById(R.id.editOrDelete);
 
         itemListView = (ListView) findViewById(R.id.itemListView);
@@ -489,21 +499,22 @@ public class MainActivity extends AppCompatActivity {
         itemTimeSeekBar.setProgress(itemTime);
         finishBySeekBar.setMax(590);
 
-//        itemTimeView.setText(timeInMinutes((long)itemTime*1000));
+        if (!hasOnCreateRun) {
 
-        // add default items
-        timerItem pasta = new timerItem("Pasta", 10, 0);
-        timerItem mince = new timerItem("Mincemeat", 10, 0);
-        timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
+            // add default items
+            timerItem pasta = new timerItem("Pasta", 10, 0);
+            timerItem mince = new timerItem("Mincemeat", 10, 0);
+            timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
 //        mince.nextItem = sauce;
 //        pasta.nextItem = sauce;
 //        timerItem bacon = new timerItem("Bacon", 300, 0);
-        itemList.add(pasta);
-        itemList.add(mince);
+            itemList.add(pasta);
+            itemList.add(mince);
 //        itemList.add(sauce);
 //        itemList.add(bacon);
 
-        sortMyList();
+            sortMyList();
+        }
 
         ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
 
@@ -606,8 +617,9 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
+        hasOnCreateRun = true;
     }
+
 
     public void pauseAll(long milliseconds) {
         // only actually pauses items with less time
@@ -629,23 +641,30 @@ public class MainActivity extends AppCompatActivity {
     public void pauseEverything(View view) {
         // pause literally everything
 
-        ImageView pause  = (ImageView)findViewById(R.id.pauseButton);
+        ImageView pause = (ImageView) findViewById(R.id.pauseButton);
 
         pause.setImageResource(ic_media_play);
 
         if (!mainTimerIsPaused) {
             pauseAll(360001);
             mainTimerIsPaused = true;
-            pause.setImageResource(ic_media_play);
+            pause.setImageResource(R.drawable.play);
         } else {
             unpauseAll(360001);
             mainTimerIsPaused = false;
-            pause.setImageResource(ic_media_pause);
+            pause.setImageResource(R.drawable.pause);
         }
     }
 
-    public void preferences(View view){
-        Toast.makeText(MainActivity.this, "Coming soon!", Toast.LENGTH_SHORT).show();
+    public void preferences(View view) {
+
+        if (!timerIsActive) {
+            Intent intent = new Intent(getApplicationContext(), settings.class);
+
+            startActivity(intent);
+        } else {
+            Toast.makeText(MainActivity.this, "Settings Can't Be Changed While Timer Active", Toast.LENGTH_SHORT).show();
+        }
     }
 
 
@@ -685,7 +704,6 @@ public class MainActivity extends AppCompatActivity {
 
         Toast.makeText(MainActivity.this, "Removing " + item, Toast.LENGTH_SHORT).show();
         removeFromQueue(item);
-        Log.i("Remove Item", "Queue references removed");
         itemList.remove(item);
         Log.i("Remove Item", "item removed");
         sortMyList();

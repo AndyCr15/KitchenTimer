@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Kitchen Multi Timer</string>
     <string name="banner_ad_unit_id">ca-app-pub-1536383980369976/4102881846</string>
+    <string name="title_activity_settings">settings</string>
 </resources>

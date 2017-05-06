@@ -59,16 +59,15 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
             android:layout_marginTop="8dp"
             android:foregroundGravity="center_horizontal"
             ads:adSize="BANNER"
             ads:adUnitId="@string/banner_ad_unit_id"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginRight="8dp"
+            ads:layout_constraintLeft_toLeftOf="parent"
             ads:layout_constraintRight_toRightOf="parent"
-            android:layout_marginLeft="8dp"
-            ads:layout_constraintLeft_toLeftOf="parent">
-        </com.google.android.gms.ads.AdView>
+            app:layout_constraintTop_toTopOf="parent"></com.google.android.gms.ads.AdView>
 
         <LinearLayout
             android:id="@+id/ItemInfoAndButtons"
@@ -307,14 +306,13 @@
         android:layout_gravity="center"
         android:background="@color/colorAccent"
         android:elevation="24dp"
-        android:visibility="invisible"
-        android:spinnerMode="dialog">
+        android:spinnerMode="dialog"
+        android:visibility="invisible">
 
         <EditText
             android:id="@+id/alarmMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="textMultiLine"
             android:layout_gravity="center"
             android:layout_marginEnd="8dp"
             android:layout_marginLeft="8dp"
@@ -322,12 +320,13 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="32dp"
             android:layout_weight="1"
+            android:background="@android:color/transparent"
             android:ellipsize="none"
+            android:ems="10"
+            android:inputType="textMultiLine"
             android:maxLines="100"
             android:minLines="2"
             android:scrollHorizontally="false"
-            android:background="@android:color/transparent"
-            android:ems="10"
             android:text="Message"
             android:textAlignment="center"
             app:layout_constraintHorizontal_bias="0.503"
@@ -353,15 +352,16 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/floatingActionButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom|right"
         android:layout_margin="24dp"
         android:clickable="true"
         android:onClick="showItemInfo"
+
+        ads:srcCompat="@drawable/plus"
         app:elevation="24dp"
-        app:fabSize="mini"
-        app:srcCompat="@android:drawable/ic_menu_add" />
+        app:fabSize="normal" />
 
     <ImageView
         android:id="@+id/prefs"
@@ -372,7 +372,7 @@
         android:layout_marginLeft="24dp"
         android:elevation="24dp"
         android:onClick="preferences"
-        ads:srcCompat="@android:drawable/ic_menu_preferences" />
+        ads:srcCompat="@drawable/cog" />
 
     <ImageView
         android:id="@+id/pauseButton"
@@ -380,9 +380,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|left"
         android:layout_marginBottom="80dp"
-        android:layout_marginLeft="64dp"
+        android:layout_marginLeft="72dp"
         android:elevation="24dp"
         android:onClick="pauseEverything"
-        ads:srcCompat="@android:drawable/ic_media_pause" />
+        ads:srcCompat="@drawable/pause" />
 
 </FrameLayout>
