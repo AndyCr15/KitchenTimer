@@ -30,6 +30,15 @@ public class timerItem implements Comparable<timerItem> {
         this.finishByLeft = this.finishBy;
     }
 
+    public timerItem(String name, long seconds, long finishBy, String note) {
+        this.name = name;
+        this.milliSeconds = seconds;
+        this.milliSecondsLeft = milliSeconds;
+        this.finishBy = finishBy;
+        this.finishByLeft = this.finishBy;
+        this.note = note;
+    }
+
     public timerItem(timerItem copy) {
         this.name = copy.name;
         this.milliSeconds = copy.milliSeconds;
@@ -106,6 +115,17 @@ public class timerItem implements Comparable<timerItem> {
     public int compareTo(timerItem o) {
         // negative means the incoming is greater, positive means the this is greater
         return (int) this.getTotalTime() - (int) o.getTotalTime();
+    }
+
+    public static int findItem(timerItem findThisItem){
+        int i = 0;
+        for(timerItem thisItem : itemList){
+            if (findThisItem.compareTo(thisItem) == 0 && findThisItem.name.equals(thisItem.name)){
+                return i;
+            }
+            i++;
+        }
+        return -1;
     }
 
     public timerItem getNextItem() {

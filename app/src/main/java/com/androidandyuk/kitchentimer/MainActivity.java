@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -13,6 +14,8 @@ import android.os.PowerManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     public static boolean hasOnCreateRun = false;
 
     static List<timerItem> itemList = new ArrayList<>();
+    static ArrayList<timerSetup> savedSetups = new ArrayList<>();
 
     // to be able to backup the list, once, to be restored in reset
     static List<timerItem> backupList = new ArrayList<>();
@@ -66,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     boolean showingAddItem = false;
     boolean mainTimerIsPaused = false;
     boolean mediaPlayerPlaying = false;
-    boolean warningsWanted = true;
+    public static boolean warningsWanted;
     long warningTime = 30000;
     //to be used to know the next tap is choosing an item to be queued in the add item method
     boolean choosingQueueItem = false;
@@ -98,10 +102,194 @@ public class MainActivity extends AppCompatActivity {
     int finishBy;
 
     //some settings
-    public int maxTime = 1500;
+    public static int maxTime;
     public static int timeViewStyle = 1;
 
+    public static SharedPreferences sharedPreferences;
+    public static SharedPreferences.Editor ed;
+
     PowerManager.WakeLock wl;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        Log.i("onCreate", "Starting");
+
+        sharedPreferences = this.getSharedPreferences("com.androidandyuk.kitchentimer", Context.MODE_PRIVATE);
+        ed = sharedPreferences.edit();
+
+
+        // loading in settings, if not null
+
+        warningsWanted = sharedPreferences.getBoolean("warningsWanted", true);
+        maxTime = sharedPreferences.getInt("maxTime", 1500);
+
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        MobileAds.initialize(getApplicationContext());
+
+        mAdView = (AdView) findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
+
+
+        itemInfo = findViewById(R.id.ItemInfo);
+        itemInfo.animate().translationY(-400f).setDuration(50);
+        editOrDelete = findViewById(R.id.editOrDelete);
+
+        itemListView = (ListView) findViewById(R.id.itemListView);
+        timerButton = (Button) findViewById(R.id.timerButton);
+        timerButton.setText("Start Timer");
+
+        itemTimeView = (TextView) findViewById(R.id.itemTime);
+        itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
+
+        itemFinishView = (TextView) findViewById(R.id.finishTime);
+        itemFinishView.setText(timerItem.timeInMinutes((long) finishBy, timeViewStyle));
+
+        buttonBefore = (Button) findViewById(R.id.buttonBefore);
+        buttonAfter = (Button) findViewById(R.id.buttonAfter);
+
+        itemTimeSeekBar = (SeekBar) findViewById(R.id.itemTimeSeekBar);
+        finishBySeekBar = (SeekBar) findViewById(R.id.finshBySeekBar);
+
+        itemTimeSeekBar.setMax(maxTime);
+        itemTimeSeekBar.setProgress(itemTime);
+        finishBySeekBar.setMax(590);
+
+        settings.loadSetups();
+        invalidateOptionsMenu();
+
+        if (!hasOnCreateRun) {
+
+            // add default items
+            timerItem pasta = new timerItem("Pasta", 10, 0);
+            timerItem mince = new timerItem("Mincemeat", 10, 0);
+            timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
+//        mince.nextItem = sauce;
+//        pasta.nextItem = sauce;
+//        timerItem bacon = new timerItem("Bacon", 300, 0);
+//            itemList.add(pasta);
+//            itemList.add(mince);
+//        itemList.add(sauce);
+//        itemList.add(bacon);
+
+            sortMyList();
+        }
+
+        ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
+
+        itemListView.setAdapter(arrayAdapter);
+
+        itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                // store which item from the list has been long pressed
+                itemLongPressedPosition = position;
+                itemLongPressed = itemList.get(position);
+                Log.i("Long Press on", " " + itemLongPressedPosition);
+
+                // set editOrDelete to visible so user can choose which to do
+                editOrDelete.setVisibility(View.VISIBLE);
+                return true;
+            }
+        });
+
+        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.i("Item :", " " + (itemList.get(position)));
+
+                //check if choosing a queue it in add item
+                if (choosingQueueItem) {
+                    itemToQueue = (itemList.get(position));
+                    showItemInfo(view);
+                    choosingQueueItem = false;
+                } else
+                    // toggle the Pause timer state on a single tap
+                    if ((itemList.get(position).isPausingMainTimer())) {
+                        Log.i("Item pressed", "was pausing Main Timer");
+                        // if clicking an item that is pausing the main timer, restart the timer on this time
+                        itemList.get(position).setPausingMainTimer(false);
+
+                        // pause anything equal or less than the paused item
+                        unpauseAll((itemList.get(position)).getTotalTime());
+                        // to pause this item, when it's time is the same as others, but
+                        // to avoide pausing all that might be running at the same time
+                        // the pauseAll method pauses those that are less than this time
+                        // so we also need to pause the actual item pressed
+                        (itemList.get(position)).setPauseTimer(false);
+
+
+//                        countDownTimer.cancel();
+//                        Log.i("Resuming Timer ", "from " + mainTimerView);
+//                        startTimer(mainTimerView);
+                        mainTimerIsPaused = false;
+                    } else {
+                        Log.i("Item pressed", "was not pausing Main Timer");
+
+                        (itemList.get(position)).setPausingMainTimer(true);
+                        pauseAll((itemList.get(position)).getTotalTime());
+                        (itemList.get(position)).setPauseTimer(true);
+
+                        // set flag to pause main timer?
+                        mainTimerIsPaused = true;
+                    }
+            }
+        });
+
+        itemTimeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                Log.i("Item Time SeekBar value", Integer.toString(progress));
+                // make 10 the minimum
+//                progress += 10;
+                itemTime = ((progress / 10) * 10);
+                if (itemTime == 0) {
+                    itemTime = 10;
+                }
+                itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        finishBySeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                Log.i("Finish SeekBar value", Integer.toString(progress));
+                // make 10 the minimum
+                finishBy = ((progress / 10) * 10);
+                itemFinishView.setText("CUSHION : " + timerItem.timeInMinutes((long) finishBy * 1000, timeViewStyle));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+        hasOnCreateRun = true;
+    }
 
     public void timerButtonPressed(View view) {
 
@@ -432,6 +620,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sortMyList() {
+        Log.i("Main Activity", "Sorting List");
         if (itemList.size() > 0) {
             Collections.sort(itemList);
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
@@ -448,187 +637,6 @@ public class MainActivity extends AppCompatActivity {
         choosingQueueItem = true;
         hideItemInfo(view);
     }
-
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-
-
-//        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
-//        ActionBar actionBar = getSupportActionBar();
-//        actionBar.hide();
-
-        Log.i("onCreate", "Starting");
-
-        Intent intent = getIntent();
-        maxTime = intent.getIntExtra("maxTime", maxTime);
-        warningsWanted = intent.getBooleanExtra("warningsWanted", warningsWanted);
-        Log.i("Max Time", "" + maxTime);
-        Log.i("Warnings Wanted", "" + warningsWanted);
-
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-
-        MobileAds.initialize(getApplicationContext());
-
-        mAdView = (AdView) findViewById(R.id.adView);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        mAdView.loadAd(adRequest);
-
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
-
-
-        itemInfo = findViewById(R.id.ItemInfo);
-        itemInfo.animate().translationY(-400f).setDuration(50);
-        editOrDelete = findViewById(R.id.editOrDelete);
-
-        itemListView = (ListView) findViewById(R.id.itemListView);
-        timerButton = (Button) findViewById(R.id.timerButton);
-        timerButton.setText("Start Timer");
-
-        itemTimeView = (TextView) findViewById(R.id.itemTime);
-        itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
-
-        itemFinishView = (TextView) findViewById(R.id.finishTime);
-        itemFinishView.setText(timerItem.timeInMinutes((long) finishBy, timeViewStyle));
-
-        buttonBefore = (Button) findViewById(R.id.buttonBefore);
-        buttonAfter = (Button) findViewById(R.id.buttonAfter);
-
-        itemTimeSeekBar = (SeekBar) findViewById(R.id.itemTimeSeekBar);
-        finishBySeekBar = (SeekBar) findViewById(R.id.finshBySeekBar);
-
-        itemTimeSeekBar.setMax(maxTime);
-        itemTimeSeekBar.setProgress(itemTime);
-        finishBySeekBar.setMax(590);
-
-        if (!hasOnCreateRun) {
-
-            // add default items
-            timerItem pasta = new timerItem("Pasta", 10, 0);
-            timerItem mince = new timerItem("Mincemeat", 10, 0);
-            timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
-//        mince.nextItem = sauce;
-//        pasta.nextItem = sauce;
-//        timerItem bacon = new timerItem("Bacon", 300, 0);
-//            itemList.add(pasta);
-//            itemList.add(mince);
-//        itemList.add(sauce);
-//        itemList.add(bacon);
-
-            sortMyList();
-        }
-
-        ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
-
-        itemListView.setAdapter(arrayAdapter);
-
-        itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-                // store which item from the list has been long pressed
-                itemLongPressedPosition = position;
-                itemLongPressed = itemList.get(position);
-                Log.i("Long Press on", " " + itemLongPressedPosition);
-
-                // set editOrDelete to visible so user can choose which to do
-                editOrDelete.setVisibility(View.VISIBLE);
-                return true;
-            }
-        });
-
-        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.i("Item :", " " + (itemList.get(position)));
-
-                //check if choosing a queue it in add item
-                if (choosingQueueItem) {
-                    itemToQueue = (itemList.get(position));
-                    showItemInfo(view);
-                    choosingQueueItem = false;
-                } else
-                    // toggle the Pause timer state on a single tap
-                    if ((itemList.get(position).isPausingMainTimer())) {
-                        Log.i("Item pressed", "was pausing Main Timer");
-                        // if clicking an item that is pausing the main timer, restart the timer on this time
-                        itemList.get(position).setPausingMainTimer(false);
-
-                        // pause anything equal or less than the paused item
-                        unpauseAll((itemList.get(position)).getTotalTime());
-                        // to pause this item, when it's time is the same as others, but
-                        // to avoide pausing all that might be running at the same time
-                        // the pauseAll method pauses those that are less than this time
-                        // so we also need to pause the actual item pressed
-                        (itemList.get(position)).setPauseTimer(false);
-
-
-//                        countDownTimer.cancel();
-//                        Log.i("Resuming Timer ", "from " + mainTimerView);
-//                        startTimer(mainTimerView);
-                        mainTimerIsPaused = false;
-                    } else {
-                        Log.i("Item pressed", "was not pausing Main Timer");
-
-                        (itemList.get(position)).setPausingMainTimer(true);
-                        pauseAll((itemList.get(position)).getTotalTime());
-                        (itemList.get(position)).setPauseTimer(true);
-
-                        // set flag to pause main timer?
-                        mainTimerIsPaused = true;
-                    }
-            }
-        });
-
-        itemTimeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                Log.i("Item Time SeekBar value", Integer.toString(progress));
-                // make 10 the minimum
-//                progress += 10;
-                itemTime = ((progress / 10) * 10);
-                if (itemTime == 0) {
-                    itemTime = 10;
-                }
-                itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        finishBySeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                Log.i("Finish SeekBar value", Integer.toString(progress));
-                // make 10 the minimum
-                finishBy = ((progress / 10) * 10);
-                itemFinishView.setText("CUSHION : " + timerItem.timeInMinutes((long) finishBy * 1000, timeViewStyle));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-        hasOnCreateRun = true;
-    }
-
 
     public void pauseAll(long milliseconds) {
         // only actually pauses items with less time that haven't started
@@ -657,7 +665,7 @@ public class MainActivity extends AppCompatActivity {
         if (!mainTimerIsPaused) {
             for (timerItem item : itemList) {
 
-                    item.setPauseTimer(true);
+                item.setPauseTimer(true);
 
             }
             mainTimerIsPaused = true;
@@ -677,10 +685,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (!timerIsActive) {
             Intent intent = new Intent(getApplicationContext(), settings.class);
-
-            intent.putExtra("maxTime", maxTime);
-            intent.putExtra("warningsWanted", warningsWanted);
-
             startActivity(intent);
         } else {
             Toast.makeText(MainActivity.this, "Settings Can't Be Changed While Timer Active", Toast.LENGTH_SHORT).show();
@@ -759,6 +763,81 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected boolean onPrepareOptionsPanel(View view, Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        super.onPrepareOptionsPanel(view, menu);
+
+        invalidateOptionsMenu();
+
+//        for (int i = 0; i < savedSetups.size(); i++) {
+//            String bikeMakeMenu = savedSetups.get(i).setupName;
+//            menu.add(0, i + 1, 0, bikeMakeMenu).setShortcut('3', 'c');
+//        }
+
+        return true;
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+
+        super.onCreateOptionsMenu(menu);
+
+        menu.add(0, 0, 0, "Settings").setShortcut('3', 'c');
+
+        for (int i = 0; i < savedSetups.size(); i++) {
+            String bikeMakeMenu = savedSetups.get(i).setupName;
+            menu.add(0, i + 1, 0, bikeMakeMenu).setShortcut('3', 'c');
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int menu_choice = item.getItemId();
+        switch (menu_choice) {
+            case 0:
+                Log.i("Option", "0");
+                Intent intent = new Intent(getApplicationContext(), settings.class);
+                startActivity(intent);
+                return true;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+                Log.i("Option", "" + menu_choice);
+                loadSetup(menu_choice - 1);
+                sortMyList();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void loadSetup(int position) {
+        itemList.clear();
+        timerSetup thisSetup = savedSetups.get(position);
+        maxTime = thisSetup.maxTime;
+        warningsWanted = thisSetup.warningsWanted;
+        for(timerItem thisItem : thisSetup.itemsSetup){
+            itemList.add(thisItem);
+        }
+    }
+
+    @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
 
@@ -779,6 +858,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+//        settings.saveSetups();
         isInForeground = false;
         Log.i("onResume", "Setting Foreground to " + isInForeground);
     }

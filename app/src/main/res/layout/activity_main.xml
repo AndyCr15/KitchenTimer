@@ -5,7 +5,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent">
+    android:layout_height="fill_parent"
+    android:background="@drawable/cooking">
 
     <android.support.constraint.ConstraintLayout
         android:id="@+id/editOrDelete"
@@ -93,7 +94,7 @@
                 android:layout_gravity="center"
 
                 android:layout_weight="1"
-                android:elevation="24dp"
+                android:elevation="0dp"
                 android:onClick="timerButtonPressed"
                 android:text="Start Timer"
                 android:textSize="18sp"
@@ -113,8 +114,7 @@
             android:layout_marginRight="8dp"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
-            android:background="@drawable/cooking"
-            android:elevation="24dp"
+            android:elevation="0dp"
             app:layout_constraintBottom_toTopOf="@+id/ItemInfoAndButtons"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -358,7 +358,6 @@
         android:layout_margin="24dp"
         android:clickable="true"
         android:onClick="showItemInfo"
-
         ads:srcCompat="@drawable/plus"
         app:elevation="24dp"
         app:fabSize="normal" />
