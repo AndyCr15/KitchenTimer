@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CompoundButton;
@@ -14,10 +13,12 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import static android.util.Log.i;
 import static com.androidandyuk.kitchentimer.MainActivity.ed;
 import static com.androidandyuk.kitchentimer.MainActivity.itemList;
 import static com.androidandyuk.kitchentimer.MainActivity.savedSetups;
 import static com.androidandyuk.kitchentimer.MainActivity.sharedPreferences;
+import static com.androidandyuk.kitchentimer.timerItem.findItem;
 
 public class settings extends AppCompatActivity {
 
@@ -53,6 +54,7 @@ public class settings extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 MainActivity.maxTime = (progress + 1) * 600;
                 maxTimeTextBox.setText(timerItem.timeInMinutes(MainActivity.maxTime * 1000, 1));
+                i("Max Time", "" + MainActivity.maxTime);
             }
 
             @Override
@@ -72,11 +74,11 @@ public class settings extends AppCompatActivity {
                 if (isChecked) {
                     // The toggle is enabled
                     MainActivity.warningsWanted = true;
-                    Log.i("Warnings Wanted", "" + warningsWanted);
+                    i("Warnings Wanted", "" + warningsWanted);
                 } else {
                     // The toggle is disabled
                     MainActivity.warningsWanted = false;
-                    Log.i("Warnings Wanted", "" + warningsWanted);
+                    i("Warnings Wanted", "" + warningsWanted);
                 }
             }
         });
@@ -94,24 +96,24 @@ public class settings extends AppCompatActivity {
         savedSetups.add(thisSetup);
 
         // hide keyboard
-        View viewAddBike = this.getCurrentFocus();
-        if (viewAddBike != null) {
+        View thisViewHere = this.getCurrentFocus();
+        if (thisViewHere != null) {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(viewAddBike.getWindowToken(), 0);
+            imm.hideSoftInputFromWindow(thisViewHere.getWindowToken(), 0);
         }
         onBackPressed();
     }
 
-    public static void saveSetups (){
-        Log.i("Settings","saveSetups");
+    public static void saveSetups() {
+        i("Settings", "saveSetups");
         // save the size of the list, so it can be checked when loading
         ed.putInt("size", savedSetups.size()).apply();
-        Log.i("Saving","Amount of Setups : " + savedSetups.size());
+        i("Saving", "Amount of Setups : " + savedSetups.size());
         //save into the next available place
-        for (int x = 0 ; x < savedSetups.size(); x++) {
+        for (int x = 0; x < savedSetups.size(); x++) {
             timerSetup thisSetup = savedSetups.get(x);
 
-            Log.i("Setup : ","" + thisSetup);
+            i("Setup : ", "" + thisSetup);
 
 
             // name of this setup
@@ -128,19 +130,25 @@ public class settings extends AppCompatActivity {
                 ed.putString("note" + x + y, thisItem.note).apply();
                 ed.putLong("milliSeconds" + x + y, thisItem.milliSeconds).apply();
                 ed.putLong("finishBy" + x + y, thisItem.finishBy).apply();
-//            ed.putInt("nextItemPos" + x + y, timerItem.findItem(thisItem.nextItem));
+                int nextItemPos = -1;
+                if (thisItem.nextItem != null) {
+                    nextItemPos = findItem(thisItem.nextItem);
+                }
+                i("Next Item Pos", "" + nextItemPos);
+                ed.putInt("nextItemPos" + x + y, nextItemPos).apply();
                 y++;
             }
         }
     }
 
     public static void loadSetups() {
-        Log.i("Settings", "loadSetups");
+        i("Settings", "loadSetups");
         //c;ear previous setups
         savedSetups.clear();
+        itemList.clear();
 
         int listSize = sharedPreferences.getInt("size", 0);
-        Log.i("Loading","Setups" + listSize);
+        i("Loading", "Setups :" + listSize);
         for (int x = 0; x < listSize; x++) {
             // initialize the new setup item
             timerSetup thisSetup = new timerSetup();
@@ -156,7 +164,12 @@ public class settings extends AppCompatActivity {
                 long thisfinishBy = sharedPreferences.getLong("finishBy" + x + y, 0);
 
                 timerItem thisItem = new timerItem(thisName, thisMilliSeconds, thisfinishBy, thisNote);
-                Log.i("Loading in ","Item " + thisItem);
+
+                int nextItemPos = sharedPreferences.getInt("nextItemPos" + x + y, -1);
+                i("Loading Item :" + thisItem,"Next Item Pos" + nextItemPos);
+                if (nextItemPos >= 0) {
+                    thisItem.nextItem = thisSetup.itemsSetup.get(nextItemPos);
+                }
                 thisSetup.itemsSetup.add(thisItem);
             }
             savedSetups.add(thisSetup);
@@ -165,7 +178,7 @@ public class settings extends AppCompatActivity {
     }
 
     public void saveSettings() {
-        Log.i("Settings", "Saving Settings");
+        i("Settings", "Saving Settings");
 
         ed.putBoolean("warningsWanted", MainActivity.warningsWanted).apply();
         ed.putInt("maxTime", MainActivity.maxTime).apply();
@@ -173,15 +186,20 @@ public class settings extends AppCompatActivity {
 
     }
 
+    public static void loadSettings() {
+        MainActivity.maxTime = sharedPreferences.getInt("maxTime", 1500);
+        MainActivity.warningsWanted = sharedPreferences.getBoolean("warningsWanted", true);
+    }
+
     public void playVideoInstructions(View view) {
         startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=G0MmtLZp9u8")));
-        Log.i("Video", "Video Playing....");
+        i("Video", "Video Playing....");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        Log.i("Settings", "On Pause");
+        i("Settings", "On Pause");
         saveSettings();
         saveSetups();
     }

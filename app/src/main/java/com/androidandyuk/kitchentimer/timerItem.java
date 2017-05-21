@@ -161,9 +161,6 @@ public class timerItem implements Comparable<timerItem> {
         this.nextItem = nextItem;
     }
 
-    public long getMilliSecondsLeft() {
-        return milliSecondsLeft;
-    }
 
     public boolean isPausingMainTimer() {
         return pausingMainTimer;
@@ -171,10 +168,6 @@ public class timerItem implements Comparable<timerItem> {
 
     public void setPausingMainTimer(boolean pausingMainTimer) {
         this.pausingMainTimer = pausingMainTimer;
-    }
-
-    public void setMilliSecondsLeft(int secondsLeft) {
-        this.milliSecondsLeft = secondsLeft;
     }
 
     public String getName() {
@@ -197,15 +190,8 @@ public class timerItem implements Comparable<timerItem> {
         return this.milliSeconds;
     }
 
-    public void setMilliSeconds(int milliSeconds) {
-        this.milliSeconds = milliSeconds;
-    }
-
     public long getFinishBy() {
         return this.finishBy;
     }
 
-    public void setFinishBy(int finishBy) {
-        this.finishBy = finishBy;
-    }
 }

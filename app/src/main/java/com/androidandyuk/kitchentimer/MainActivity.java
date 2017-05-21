@@ -11,7 +11,9 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.PowerManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -23,7 +25,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -39,8 +40,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static android.R.drawable.ic_media_play;
+import static com.androidandyuk.kitchentimer.R.drawable.pause;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
+import static com.androidandyuk.kitchentimer.settings.loadSettings;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     ListView itemListView;
     TextView itemTimeView;
     TextView itemFinishView;
+    FloatingActionButton floatingActionButton;
 
     public static boolean isInForeground;
     public static boolean hasOnCreateRun = false;
@@ -108,6 +111,12 @@ public class MainActivity extends AppCompatActivity {
     public static SharedPreferences sharedPreferences;
     public static SharedPreferences.Editor ed;
 
+    // for persisten notification
+    NotificationCompat.Builder mBuilder;
+    NotificationManager mNotificationManager;
+    boolean firstTime;
+    int mNotificationId;
+
     PowerManager.WakeLock wl;
 
 
@@ -125,8 +134,7 @@ public class MainActivity extends AppCompatActivity {
 
         // loading in settings, if not null
 
-        warningsWanted = sharedPreferences.getBoolean("warningsWanted", true);
-        maxTime = sharedPreferences.getInt("maxTime", 1500);
+        loadSettings();
 
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
@@ -160,11 +168,12 @@ public class MainActivity extends AppCompatActivity {
         itemTimeSeekBar = (SeekBar) findViewById(R.id.itemTimeSeekBar);
         finishBySeekBar = (SeekBar) findViewById(R.id.finshBySeekBar);
 
-        itemTimeSeekBar.setMax(maxTime);
+        itemTimeSeekBar.setMax(MainActivity.maxTime);
         itemTimeSeekBar.setProgress(itemTime);
         finishBySeekBar.setMax(590);
 
         settings.loadSetups();
+        loadSettings();
         invalidateOptionsMenu();
 
         if (!hasOnCreateRun) {
@@ -210,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
                 //check if choosing a queue it in add item
                 if (choosingQueueItem) {
                     itemToQueue = (itemList.get(position));
-                    showItemInfo(view);
+                    showItemInfo();
                     choosingQueueItem = false;
                 } else
                     // toggle the Pause timer state on a single tap
@@ -246,12 +255,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         itemTimeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                Log.i("Item Time SeekBar value", Integer.toString(progress));
-                // make 10 the minimum
-//                progress += 10;
-                itemTime = ((progress / 10) * 10);
+                itemTimeSeekBar.setMax(MainActivity.maxTime);
+                itemTime = ((progress / 30) * 30);
                 if (itemTime == 0) {
                     itemTime = 10;
                 }
@@ -326,10 +334,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void updateNotification(String message) {
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 1, intent, 0);
+        if (firstTime) {
+            mBuilder.setSmallIcon(android.R.drawable.sym_def_app_icon)
+                    .setContentIntent(pendingIntent)
+                    .setContentTitle("Kitchen Multi Timer")
+                    .setOnlyAlertOnce(true);
+            firstTime = false;
+        }
+        mBuilder.setContentText(message);
+
+        mNotificationManager.notify(mNotificationId, mBuilder.build());
+    }
+
     public void startTimer(long milliSeconds) {
 
         //stop phone from sleeping
         wl.acquire();
+        floatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
+        floatingActionButton.setImageResource(pause);
 
         // Timer is started to be an hour long, but only really used for it's tick
         // mainTimerView decides if and when things happen
@@ -344,6 +370,15 @@ public class MainActivity extends AppCompatActivity {
         Log.i("Main Timer", "Setting Pause as False");
         mainTimerIsPaused = false;
 
+        // persistent notification
+        mBuilder = new NotificationCompat.Builder(this);
+        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        //Different Id's will show up as different notifications
+        mNotificationId = 1;
+        //Some things we only have to set the first time.
+        firstTime = true;
+
+
         countDownTimer = new CountDownTimer(milliSeconds, 250) {
 
             @Override
@@ -356,6 +391,10 @@ public class MainActivity extends AppCompatActivity {
 
                 timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
+
+
+                updateNotification("Time Until All Complete :" + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+
 
                 // every quarter of a second run this loop for each item in the list
                 for (timerItem item : itemList) {
@@ -372,13 +411,15 @@ public class MainActivity extends AppCompatActivity {
                         item.hasStarted = true;
                     }
 
-                    // check for 30 second warning of new item
-                    if (((mainTimerView - warningTime) == item.getTotalTime()) && (!item.hasStarted) && warningsWanted) {
-                        //give 30 second warning but only with a toast, so not sent to alarmMessage
-                        mplayer = MediaPlayer.create(getApplicationContext(), R.raw.blip);
-                        mplayer.start();
-                        mediaPlayerPlaying = true;
-                        Toast.makeText(MainActivity.this, "Get the " + item.getName() + " ready!", Toast.LENGTH_LONG).show();
+                    if (warningsWanted) {
+                        // check for 30 second warning of new item
+                        if (((mainTimerView - warningTime) == item.getTotalTime()) && (!item.hasStarted) && warningsWanted) {
+                            //give 30 second warning but only with a toast, so not sent to alarmMessage
+                            mplayer = MediaPlayer.create(getApplicationContext(), R.raw.blip);
+                            mplayer.start();
+                            mediaPlayerPlaying = true;
+                            Toast.makeText(MainActivity.this, "Get the " + item.getName() + " ready!", Toast.LENGTH_LONG).show();
+                        }
                     }
 
                     // check item is in range and not paused, the main timer is not paused then take a quarter of a second off
@@ -449,6 +490,8 @@ public class MainActivity extends AppCompatActivity {
     public void resetTimer() {
 
         Log.i("Timer", "Reset!");
+        floatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
+        floatingActionButton.setImageResource(R.drawable.plus);
         restoreBackup();
         countDownTimer.cancel();
         timerIsActive = false;
@@ -474,10 +517,9 @@ public class MainActivity extends AppCompatActivity {
         sortMyList();
     }
 
-    public void showItemInfo(View view) {
+    public void showItemInfo() {
         if (!showingAddItem) {
             showingAddItem = true;
-
 
             itemInfo.setVisibility(View.VISIBLE);
 
@@ -489,6 +531,16 @@ public class MainActivity extends AppCompatActivity {
         itemInfo.setVisibility(View.INVISIBLE);
         showingAddItem = false;
 
+    }
+
+    public void FABpressed(View view) {
+        floatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
+        // FAB is used to add an item if the timer hasn't started yet, but then pause and play
+        if (!timerIsActive && !mainTimerIsPaused) {
+            showItemInfo();
+        } else {
+            pauseEverything(view);
+        }
     }
 
     public void soundAlarm(String message, int soundNumber) {
@@ -657,10 +709,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void pauseEverything(View view) {
         // pause literally everything
-
-        ImageView pause = (ImageView) findViewById(R.id.pauseButton);
-
-        pause.setImageResource(ic_media_play);
+        floatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
 
         if (!mainTimerIsPaused) {
             for (timerItem item : itemList) {
@@ -669,7 +718,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
             mainTimerIsPaused = true;
-            pause.setImageResource(R.drawable.play);
+            floatingActionButton.setImageResource(R.drawable.play);
         } else {
             for (timerItem item : itemList) {
 
@@ -677,7 +726,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
             mainTimerIsPaused = false;
-            pause.setImageResource(R.drawable.pause);
+            floatingActionButton.setImageResource(pause);
         }
     }
 
@@ -716,7 +765,7 @@ public class MainActivity extends AppCompatActivity {
         queueTag = "1";
         itemToQueue = itemLongPressed.nextItem;
 
-        showItemInfo(view);
+        showItemInfo();
         // now all info is copied into editInfo, remove the item
         removeItem(itemLongPressed);
     }
@@ -751,15 +800,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            moveTaskToBack(true);
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
     }
 
     @Override
@@ -832,7 +872,7 @@ public class MainActivity extends AppCompatActivity {
         timerSetup thisSetup = savedSetups.get(position);
         maxTime = thisSetup.maxTime;
         warningsWanted = thisSetup.warningsWanted;
-        for(timerItem thisItem : thisSetup.itemsSetup){
+        for (timerItem thisItem : thisSetup.itemsSetup) {
             itemList.add(thisItem);
         }
     }
@@ -847,6 +887,43 @@ public class MainActivity extends AppCompatActivity {
         savedInstanceState.putBoolean("timerIsActive", timerIsActive);
         savedInstanceState.putBoolean("showingAddItem", showingAddItem);
     }
+
+    @Override
+    public void onBackPressed() {
+//        // check if the back button was pressed with the add item view showing
+//        // if it was, hide this view.  If not, carry on as normal.
+//        Log.i("Back Pressed", "Adding item = " + showingAddItem);
+//        if (showingAddItem) {
+//
+//            showingAddItem = false;
+//            itemInfo.setVisibility(View.INVISIBLE);
+//
+//        } else {
+//            super.onBackPressed();
+//        }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+
+            // check if the back button was pressed with the add item view showing
+            // if it was, hide this view.  If not, carry on as normal.
+            Log.i("Back Pressed", "Adding item = " + showingAddItem);
+            if (showingAddItem) {
+
+                showingAddItem = false;
+                itemInfo.setVisibility(View.INVISIBLE);
+
+            } else {
+
+                moveTaskToBack(true);
+                return true;
+            }
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
 
     @Override
     protected void onResume() {
