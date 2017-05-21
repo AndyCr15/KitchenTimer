@@ -5,13 +5,20 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import java.util.ArrayList;
 
 import static android.util.Log.i;
 import static com.androidandyuk.kitchentimer.MainActivity.ed;
@@ -19,6 +26,7 @@ import static com.androidandyuk.kitchentimer.MainActivity.itemList;
 import static com.androidandyuk.kitchentimer.MainActivity.savedSetups;
 import static com.androidandyuk.kitchentimer.MainActivity.sharedPreferences;
 import static com.androidandyuk.kitchentimer.timerItem.findItem;
+import static java.lang.String.valueOf;
 
 public class settings extends AppCompatActivity {
 
@@ -28,6 +36,8 @@ public class settings extends AppCompatActivity {
     ToggleButton warningsWantedButton;
     TextView maxTimeTextBox;
     EditText timerName;
+    Spinner deleteItem;
+    Button deleteButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +92,24 @@ public class settings extends AppCompatActivity {
                 }
             }
         });
+
+        // setup the delete setup spinner
+        final Spinner deleteItem = (Spinner)findViewById(R.id.deleteSpinner);
+        ArrayList<timerSetup> items = savedSetups;
+        ArrayAdapter<timerSetup> adapter = new ArrayAdapter<timerSetup>(this, android.R.layout.simple_spinner_dropdown_item, items);
+        deleteItem.setAdapter(adapter);
+        deleteButton = (Button)findViewById(R.id.deleteButton);
+
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.i("Delete ", "" + valueOf(deleteItem.getSelectedItem()));
+                Toast.makeText(settings.this, "Deleting" + valueOf(deleteItem.getSelectedItem()), Toast.LENGTH_LONG).show();
+                savedSetups.remove(deleteItem.getSelectedItem());
+                finish();
+            }
+        });
+
     }
 
     public void saveSetup(View view) {

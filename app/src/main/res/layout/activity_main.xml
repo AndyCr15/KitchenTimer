@@ -94,9 +94,11 @@
                 android:layout_gravity="center"
 
                 android:layout_weight="1"
+                android:background="@color/colorPrimary"
                 android:elevation="0dp"
                 android:onClick="timerButtonPressed"
                 android:text="Start Timer"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 tools:layout_editor_absoluteX="8dp"
                 tools:layout_editor_absoluteY="81dp" />

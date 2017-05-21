@@ -730,17 +730,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void preferences(View view) {
-
-        if (!timerIsActive) {
-            Intent intent = new Intent(getApplicationContext(), settings.class);
-            startActivity(intent);
-        } else {
-            Toast.makeText(MainActivity.this, "Settings Can't Be Changed While Timer Active", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
     public void deletePressed(View view) {
         editOrDelete.setVisibility(View.INVISIBLE);
         removeItem(itemLongPressed);
@@ -890,17 +879,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-//        // check if the back button was pressed with the add item view showing
-//        // if it was, hide this view.  If not, carry on as normal.
-//        Log.i("Back Pressed", "Adding item = " + showingAddItem);
-//        if (showingAddItem) {
-//
-//            showingAddItem = false;
-//            itemInfo.setVisibility(View.INVISIBLE);
-//
-//        } else {
-//            super.onBackPressed();
-//        }
     }
 
     @Override
@@ -923,7 +901,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return super.onKeyDown(keyCode, event);
     }
-
 
     @Override
     protected void onResume() {
