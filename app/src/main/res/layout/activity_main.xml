@@ -9,11 +9,33 @@
     android:background="@drawable/cooking">
 
     <android.support.constraint.ConstraintLayout
+        android:id="@+id/nextAlarm"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:background="@drawable/rounded_corners"
+        android:elevation="24dp"
+        android:visibility="invisible">
+
+        <TextView
+            android:id="@+id/nextAlarmText"
+            android:layout_width="176dp"
+            android:layout_height="76dp"
+            android:foregroundGravity="center_vertical"
+            android:text="TextView"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            tools:layout_editor_absoluteX="12dp"
+            tools:layout_editor_absoluteY="8dp" />
+    </android.support.constraint.ConstraintLayout>
+
+    <android.support.constraint.ConstraintLayout
         android:id="@+id/editOrDelete"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@color/colorPrimary"
+        android:background="@drawable/rounded_corners"
         android:elevation="24dp"
         android:visibility="invisible">
 
@@ -68,7 +90,9 @@
             ads:adUnitId="@string/banner_ad_unit_id"
             ads:layout_constraintLeft_toLeftOf="parent"
             ads:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent"></com.google.android.gms.ads.AdView>
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"></com.google.android.gms.ads.AdView>
 
         <LinearLayout
             android:id="@+id/ItemInfoAndButtons"
@@ -83,7 +107,9 @@
             app:layout_constraintRight_toRightOf="parent"
             tools:layout_constraintBottom_creator="1"
             tools:layout_constraintLeft_creator="1"
-            tools:layout_constraintRight_creator="1">
+            tools:layout_constraintRight_creator="1"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp">
 
 
             <Button
@@ -135,14 +161,16 @@
         android:layout_width="250dp"
         android:layout_height="300dp"
         android:layout_gravity="center"
+        android:radius="10dip"
         android:alpha="1"
-        android:background="?attr/colorPrimary"
+        android:background="@drawable/rounded_corners"
         android:elevation="24dp"
         android:orientation="vertical"
         android:visibility="invisible">
 
         <EditText
             android:id="@+id/itemName"
+            android:inputType="textCapSentences"
             android:layout_width="0dp"
             android:layout_height="35dp"
             android:layout_marginEnd="8dp"
@@ -154,7 +182,6 @@
             android:elevation="24dp"
             android:ems="10"
             android:hint="Enter item to add here"
-            android:inputType="textPersonName"
             android:nextFocusDown="@+id/itemTime"
             android:nextFocusForward="@+id/itemTime"
             android:nextFocusRight="@+id/itemTime"
@@ -224,7 +251,7 @@
             android:elevation="24dp"
             android:onClick="addItem"
             android:text="Add Item"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@android:color/white"
             android:textSize="10sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="@+id/buttonAfter" />
@@ -306,7 +333,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@color/colorAccent"
+        android:background="@drawable/rounded_corners_reverse"
         android:elevation="24dp"
         android:spinnerMode="dialog"
         android:visibility="invisible">
@@ -363,16 +390,5 @@
         ads:srcCompat="@drawable/plus"
         app:elevation="24dp"
         app:fabSize="normal" />
-
-    <ImageView
-        android:id="@+id/pauseButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|left"
-        android:layout_marginBottom="80dp"
-        android:layout_marginLeft="24dp"
-        android:elevation="24dp"
-        android:onClick="pauseEverything"
-        ads:srcCompat="@drawable/pause" />
 
 </FrameLayout>

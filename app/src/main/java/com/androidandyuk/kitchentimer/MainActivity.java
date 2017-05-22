@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     static boolean serial = false;
 
     long longestTimer;
+    long nextLongestTimer;
     long mainTimerView;
 
     // used to store what item might be being edited or deleted
@@ -94,7 +95,9 @@ public class MainActivity extends AppCompatActivity {
     Button buttonAfter;
     View itemInfo;
     View editOrDelete;
+    View nextAlarm;
     EditText itemInfoName;
+    TextView nextAlarmText;
     SeekBar itemTimeSeekBar;
     SeekBar finishBySeekBar;
 
@@ -105,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
     int finishBy;
 
     //some settings
-    public static int maxTime;
+    public static int maxTime = 1500;
     public static int timeViewStyle = 1;
 
     public static SharedPreferences sharedPreferences;
@@ -149,12 +152,15 @@ public class MainActivity extends AppCompatActivity {
 
 
         itemInfo = findViewById(R.id.ItemInfo);
-        itemInfo.animate().translationY(-400f).setDuration(50);
+        itemInfo.animate().translationY(-500f).setDuration(50);
         editOrDelete = findViewById(R.id.editOrDelete);
 
         itemListView = (ListView) findViewById(R.id.itemListView);
         timerButton = (Button) findViewById(R.id.timerButton);
         timerButton.setText("Start Timer");
+
+        nextAlarm = findViewById(R.id.nextAlarm);
+        nextAlarmText = (TextView) findViewById(R.id.nextAlarmText);
 
         itemTimeView = (TextView) findViewById(R.id.itemTime);
         itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
@@ -258,7 +264,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                Log.i("Max Time is ", "" + MainActivity.maxTime);
                 itemTimeSeekBar.setMax(MainActivity.maxTime);
+                Log.i("Progress is ", "" + progress);
                 itemTime = ((progress / 30) * 30);
                 if (itemTime == 0) {
                     itemTime = 10;
@@ -317,18 +325,29 @@ public class MainActivity extends AppCompatActivity {
             //code for when the timer is already running
             Log.i("Timer button pressed ", "Already running");
             timerButton.setText("Start Timer");
+            nextAlarm.setVisibility(View.INVISIBLE);
             timerIsActive = false;
             resetTimer();
         } else if (itemList.size() > 0) {
             //code if timer is not runningCollections.sort(itemList);
             Collections.sort(itemList);
             longestTimer = (itemList.get(itemList.size() - 1)).getTotalTime();
+
+            // check if there is another timer, if so, how long is that one from ending.
+            nextLongestTimer = 0;
+//            if (itemList.size() > 1) {
+            for (int i = 0; i < itemList.size() - 1; i++) {
+                if (itemList.get(i).getTotalTime() + 500 < longestTimer) {
+                    nextLongestTimer = (itemList.get(i)).getTotalTime();
+                }
+            }
+//            }
             Log.i("Starting Timer", "Longest time is " + itemList.get(itemList.size() - 1).getTotalTime());
 //            Log.i("Timer ", " " + itemList.get(itemList.size() - 1).milliSeconds + " finishBy " + itemList.get(itemList.size() - 1).getFinishBy());
             timerIsActive = true;
             timerButton.setText("Stop");
-            // Start timer at an hour, mainTimerView will actually decide when what happens
-            startTimer(3600000);
+            // Start timer at four hours, mainTimerView will actually decide when what happens
+            startTimer(14000000);
         } else {
             Toast.makeText(MainActivity.this, "You need to add some items", Toast.LENGTH_SHORT).show();
         }
@@ -341,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
         if (firstTime) {
             mBuilder.setSmallIcon(android.R.drawable.sym_def_app_icon)
                     .setContentIntent(pendingIntent)
-                    .setContentTitle("Kitchen Multi Timer")
+                    .setContentTitle("Multi Timer")
                     .setOnlyAlertOnce(true);
             firstTime = false;
         }
@@ -392,8 +411,15 @@ public class MainActivity extends AppCompatActivity {
                 timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
 
-
-                updateNotification("Time Until All Complete :" + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                // if the timer is running with more than one alarm left, show the window for the next alarm
+                if (mainTimerView - nextLongestTimer > 500) {
+                    nextAlarm.setVisibility(View.VISIBLE);
+                    nextAlarmText.setText("Time until\nnext alarm :\n" + timerItem.timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle));
+                    updateNotification("Next Alarm in " + timerItem.timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle) + " - All done in " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                } else {
+                    nextAlarm.setVisibility(View.INVISIBLE);
+                    updateNotification("All done in " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                }
 
 
                 // every quarter of a second run this loop for each item in the list
@@ -492,6 +518,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("Timer", "Reset!");
         floatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
         floatingActionButton.setImageResource(R.drawable.plus);
+        mNotificationManager.cancel(mNotificationId);
         restoreBackup();
         countDownTimer.cancel();
         timerIsActive = false;
@@ -578,7 +605,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (!isInForeground) {
             notification = new Notification.Builder(getApplicationContext())
-                    .setContentTitle("Kitchen Timer")
+                    .setContentTitle("Multi Timer")
                     .setContentText(message)
                     .setContentIntent(pendingIntent)
                     .setSmallIcon(android.R.drawable.sym_def_app_icon)
