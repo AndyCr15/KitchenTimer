@@ -47,6 +47,7 @@ public class settings extends AppCompatActivity {
         maxTimeSeekBar = (SeekBar) findViewById(R.id.maxTimeSeekBar);
         warningsWantedButton = (ToggleButton) findViewById(R.id.warningsToggle);
         maxTimeTextBox = (TextView) findViewById(R.id.maxTimeTextBox);
+        maxTimeTextBox.setText(timerItem.timeInMinutes(MainActivity.maxTime * 1000, 1));
 
 //        Intent intent = getIntent();
 //        maxTime = intent.getIntExtra("maxTime", maxTime);
@@ -94,17 +95,17 @@ public class settings extends AppCompatActivity {
         });
 
         // setup the delete setup spinner
-        final Spinner deleteItem = (Spinner)findViewById(R.id.deleteSpinner);
+        final Spinner deleteItem = (Spinner) findViewById(R.id.deleteSpinner);
         ArrayList<timerSetup> items = savedSetups;
         ArrayAdapter<timerSetup> adapter = new ArrayAdapter<timerSetup>(this, android.R.layout.simple_spinner_dropdown_item, items);
         deleteItem.setAdapter(adapter);
-        deleteButton = (Button)findViewById(R.id.deleteButton);
+        deleteButton = (Button) findViewById(R.id.deleteButton);
 
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.i("Delete ", "" + valueOf(deleteItem.getSelectedItem()));
-                Toast.makeText(settings.this, "Deleting" + valueOf(deleteItem.getSelectedItem()), Toast.LENGTH_LONG).show();
+                Toast.makeText(settings.this, "Deleting " + valueOf(deleteItem.getSelectedItem()), Toast.LENGTH_LONG).show();
                 savedSetups.remove(deleteItem.getSelectedItem());
                 finish();
             }
@@ -114,14 +115,15 @@ public class settings extends AppCompatActivity {
 
     public void saveSetup(View view) {
         EditText setupName = (EditText) findViewById(R.id.setupName);
-
+        Log.i("Saving Setup ",setupName.getText().toString());
         // first, save the setup into the memory held savedSetups
-        timerSetup thisSetup = new timerSetup();
-        thisSetup.setupName = setupName.getText().toString();
-        for (timerItem thisItem : itemList) {
-            thisSetup.itemsSetup.add(thisItem);
+        timerSetup thisNewSetup = new timerSetup();
+        thisNewSetup.setupName = setupName.getText().toString();
+        for (timerItem thisNewItem : itemList) {
+            thisNewSetup.itemsSetup.add(thisNewItem);
         }
-        savedSetups.add(thisSetup);
+        Log.i("Saving Setup ", "" + thisNewSetup.itemsSetup.size() + " items");
+        savedSetups.add(thisNewSetup);
 
         // hide keyboard
         View thisViewHere = this.getCurrentFocus();
@@ -136,24 +138,22 @@ public class settings extends AppCompatActivity {
         i("Settings", "saveSetups");
         // save the size of the list, so it can be checked when loading
         ed.putInt("size", savedSetups.size()).apply();
-        i("Saving", "Amount of Setups : " + savedSetups.size());
+        i("Saving Setups", "Amount of Setups : " + savedSetups.size());
         //save into the next available place
         for (int x = 0; x < savedSetups.size(); x++) {
             timerSetup thisSetup = savedSetups.get(x);
 
-            i("Setup : ", "" + thisSetup);
-
+            i("Setup ", "" + thisSetup);
 
             // name of this setup
             ed.putString("setupName" + x, thisSetup.setupName).apply();
 
             // save the settings for this setup too
-            ed.putInt("maxTime" + x, thisSetup.maxTime).apply();
-            ed.putBoolean("warningsWanted" + x, thisSetup.warningsWanted).apply();
             ed.putInt("itemListSize" + x, thisSetup.itemsSetup.size()).apply();
             // save the items for this setup
+            i("Saving Setups", "Amount of Items : " + savedSetups.size());
             int y = 0;
-            for (timerItem thisItem : itemList) {
+            for (timerItem thisItem : thisSetup.itemsSetup) {
                 ed.putString("name" + x + y, thisItem.getName()).apply();
                 ed.putString("note" + x + y, thisItem.note).apply();
                 ed.putLong("milliSeconds" + x + y, thisItem.milliSeconds).apply();
@@ -167,9 +167,25 @@ public class settings extends AppCompatActivity {
                 y++;
             }
         }
+        showSetups();
+    }
+
+    public static void showSetups() {
+        int listSize = sharedPreferences.getInt("size", 0);
+        i("Showing", "Setups : " + listSize);
+        for (int x = 0; x < listSize; x++) {
+            Log.i("Setup No " + x, "Name " + sharedPreferences.getString("setupName" + x, "Unknown"));
+            int itemListSize = sharedPreferences.getInt("itemListSize" + x, 0);
+            Log.i("Items in this setup ", "" + itemListSize);
+            for (int y = 0; y < itemListSize; y++) {
+                Log.i("Item No " + y, "" + sharedPreferences.getString("name" + x + y, "Unknown"));
+
+            }
+        }
     }
 
     public static void loadSetups() {
+        showSetups();
         i("Settings", "loadSetups");
         //c;ear previous setups
         savedSetups.clear();
@@ -181,8 +197,6 @@ public class settings extends AppCompatActivity {
             // initialize the new setup item
             timerSetup thisSetup = new timerSetup();
             thisSetup.setupName = sharedPreferences.getString("setupName" + x, "Unknown");
-            thisSetup.maxTime = sharedPreferences.getInt("maxTime" + x, 1500);
-            thisSetup.warningsWanted = sharedPreferences.getBoolean("warningsWanted" + x, true);
 
             int itemListSize = sharedPreferences.getInt("itemListSize" + x, 0);
             for (int y = 0; y < itemListSize; y++) {
@@ -194,7 +208,7 @@ public class settings extends AppCompatActivity {
                 timerItem thisItem = new timerItem(thisName, thisMilliSeconds, thisfinishBy, thisNote);
 
                 int nextItemPos = sharedPreferences.getInt("nextItemPos" + x + y, -1);
-                i("Loading Item :" + thisItem,"Next Item Pos" + nextItemPos);
+                i("Loading Item :" + thisItem, "Next Item Pos" + nextItemPos);
                 if (nextItemPos >= 0) {
                     thisItem.nextItem = thisSetup.itemsSetup.get(nextItemPos);
                 }
