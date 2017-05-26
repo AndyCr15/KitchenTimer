@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -25,6 +27,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -60,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton floatingActionButton;
 
     public static boolean isInForeground;
-    public static boolean hasOnCreateRun = false;
 
     static List<timerItem> itemList = new ArrayList<>();
     static ArrayList<timerSetup> savedSetups = new ArrayList<>();
@@ -74,7 +76,8 @@ public class MainActivity extends AppCompatActivity {
     boolean showingEditOrDelete = false;
     boolean mainTimerIsPaused = false;
     boolean mediaPlayerPlaying = false;
-    public static boolean warningsWanted;
+    public static boolean warningsWanted = true;
+    public static boolean backgroundWanted = false;
     long warningTime = 30000;
     //to be used to know the next tap is choosing an item to be queued in the add item method
     boolean choosingQueueItem = false;
@@ -123,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
 
     PowerManager.WakeLock wl;
 
+    public static FrameLayout mainLayout;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,13 +136,9 @@ public class MainActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         Log.i("onCreate", "Starting");
-        Log.i("MaxTime", "" + maxTime);
 
         sharedPreferences = this.getSharedPreferences("com.androidandyuk.kitchentimer", Context.MODE_PRIVATE);
         ed = sharedPreferences.edit();
-
-
-        // loading in settings, if not null
 
         loadSettings();
 
@@ -180,26 +181,13 @@ public class MainActivity extends AppCompatActivity {
         itemTimeSeekBar.setProgress(itemTime);
         finishBySeekBar.setMax(590);
 
+        mainLayout = (FrameLayout) findViewById(R.id.mainLayout);
+
+
+
         settings.loadSetups();
         loadSettings();
         invalidateOptionsMenu();
-
-        if (!hasOnCreateRun) {
-
-            // add default items
-            timerItem pasta = new timerItem("Pasta", 10, 0);
-            timerItem mince = new timerItem("Mincemeat", 10, 0);
-            timerItem sauce = new timerItem("Mincemeat & Sauce", 10, 0);
-//        mince.nextItem = sauce;
-//        pasta.nextItem = sauce;
-//        timerItem bacon = new timerItem("Bacon", 300, 0);
-//            itemList.add(pasta);
-//            itemList.add(mince);
-//        itemList.add(sauce);
-//        itemList.add(bacon);
-
-            sortMyList();
-        }
 
         ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
 
@@ -307,7 +295,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-        hasOnCreateRun = true;
     }
 
     public void timerButtonPressed(View view) {
@@ -708,15 +695,10 @@ public class MainActivity extends AppCompatActivity {
         // check if there is another timer, if so, how long is that one from ending.
         nextLongestTimer = 0;
         Log.i("Finding ", "nextLongestTimer");
-//            if (itemList.size() > 1) {
-
         for (int i = 0; i < itemList.size() - 1; i++) {
-            Log.i("This item (+250) = " + i + " " + (itemList.get(i).getTotalTime() + 250), "LT = " + longestTimer);
-            if (itemList.get(i).getTotalTime() + 250 < longestTimer) {
+            if (itemList.get(i).getTotalTime() + 250 < longestTimer && !itemList.get(i).hasStarted) {
                 nextLongestTimer = (itemList.get(i)).getTotalTime();
-                Log.i("New nLT ", "" + nextLongestTimer);
             }
-            Log.i("nLT =", "" + nextLongestTimer);
         }
 
         ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
@@ -956,6 +938,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         isInForeground = true;
+
+        if(backgroundWanted){
+            int resID = getResources().getIdentifier("cooking", "drawable",  this.getPackageName());
+            Drawable drawablePic = getResources().getDrawable(resID);
+            MainActivity.mainLayout.setBackground(drawablePic);
+        } else {
+            MainActivity.mainLayout.setBackgroundColor(Color.parseColor("#ffffff"));
+        }
+
         Log.i("onResume", "Setting Foreground to " + isInForeground);
     }
 

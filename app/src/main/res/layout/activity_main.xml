@@ -4,9 +4,10 @@
     xmlns:ads="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainLayout"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:background="@drawable/cooking">
+    android:layout_height="fill_parent">
+    <!--android:background="@drawable/cooking">-->
 
     <android.support.constraint.ConstraintLayout
         android:id="@+id/nextAlarm"
@@ -82,17 +83,17 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
+            android:layout_marginEnd="8dp"
             android:layout_marginLeft="8dp"
             android:layout_marginRight="8dp"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:foregroundGravity="center_horizontal"
             ads:adSize="BANNER"
             ads:adUnitId="@string/banner_ad_unit_id"
             ads:layout_constraintLeft_toLeftOf="parent"
             ads:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"></com.google.android.gms.ads.AdView>
+            app:layout_constraintTop_toTopOf="parent"></com.google.android.gms.ads.AdView>
 
         <LinearLayout
             android:id="@+id/ItemInfoAndButtons"
@@ -100,6 +101,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:layout_marginEnd="8dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/border_shadow"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -107,9 +110,7 @@
             app:layout_constraintRight_toRightOf="parent"
             tools:layout_constraintBottom_creator="1"
             tools:layout_constraintLeft_creator="1"
-            tools:layout_constraintRight_creator="1"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp">
+            tools:layout_constraintRight_creator="1">
 
 
             <Button
@@ -161,16 +162,15 @@
         android:layout_width="250dp"
         android:layout_height="300dp"
         android:layout_gravity="center"
-        android:radius="10dip"
         android:alpha="1"
         android:background="@drawable/rounded_corners"
         android:elevation="24dp"
         android:orientation="vertical"
+        android:radius="10dip"
         android:visibility="invisible">
 
         <EditText
             android:id="@+id/itemName"
-            android:inputType="textCapSentences"
             android:layout_width="0dp"
             android:layout_height="35dp"
             android:layout_marginEnd="8dp"
@@ -182,6 +182,7 @@
             android:elevation="24dp"
             android:ems="10"
             android:hint="Enter item to add here"
+            android:inputType="textCapSentences"
             android:nextFocusDown="@+id/itemTime"
             android:nextFocusForward="@+id/itemTime"
             android:nextFocusRight="@+id/itemTime"

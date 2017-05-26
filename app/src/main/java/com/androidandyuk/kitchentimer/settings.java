@@ -21,6 +21,7 @@ import android.widget.ToggleButton;
 import java.util.ArrayList;
 
 import static android.util.Log.i;
+import static com.androidandyuk.kitchentimer.MainActivity.backgroundWanted;
 import static com.androidandyuk.kitchentimer.MainActivity.ed;
 import static com.androidandyuk.kitchentimer.MainActivity.itemList;
 import static com.androidandyuk.kitchentimer.MainActivity.savedSetups;
@@ -31,12 +32,11 @@ import static java.lang.String.valueOf;
 public class settings extends AppCompatActivity {
 
     int maxTime;
-    boolean warningsWanted;
+//    boolean warningsWanted;
     SeekBar maxTimeSeekBar;
     ToggleButton warningsWantedButton;
+    ToggleButton backgroundWantedButton;
     TextView maxTimeTextBox;
-    EditText timerName;
-    Spinner deleteItem;
     Button deleteButton;
 
     @Override
@@ -46,17 +46,16 @@ public class settings extends AppCompatActivity {
 
         maxTimeSeekBar = (SeekBar) findViewById(R.id.maxTimeSeekBar);
         warningsWantedButton = (ToggleButton) findViewById(R.id.warningsToggle);
+        backgroundWantedButton = (ToggleButton) findViewById(R.id.backgroundToggle);
+
         maxTimeTextBox = (TextView) findViewById(R.id.maxTimeTextBox);
         maxTimeTextBox.setText(timerItem.timeInMinutes(MainActivity.maxTime * 1000, 1));
-
-//        Intent intent = getIntent();
-//        maxTime = intent.getIntExtra("maxTime", maxTime);
-//        warningsWanted = intent.getBooleanExtra("warningsWanted", warningsWanted);
 
         maxTimeSeekBar.setMax(19);
         maxTimeSeekBar.setProgress(MainActivity.maxTime / 600);
 
         warningsWantedButton.setChecked(MainActivity.warningsWanted);
+        backgroundWantedButton.setChecked((backgroundWanted));
 
         maxTimeTextBox.setText(timerItem.timeInMinutes(maxTime * 1000, 1));
 
@@ -85,11 +84,26 @@ public class settings extends AppCompatActivity {
                 if (isChecked) {
                     // The toggle is enabled
                     MainActivity.warningsWanted = true;
-                    i("Warnings Wanted", "" + warningsWanted);
+                    i("Warnings Wanted", "" + MainActivity.warningsWanted);
                 } else {
                     // The toggle is disabled
                     MainActivity.warningsWanted = false;
-                    i("Warnings Wanted", "" + warningsWanted);
+                    i("Warnings Wanted", "" + MainActivity.warningsWanted);
+                }
+            }
+        });
+
+        backgroundWantedButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // The toggle is enabled
+                    MainActivity.backgroundWanted = true;
+                    i("Warnings Wanted", "" + MainActivity.backgroundWanted);
+                } else {
+                    // The toggle is disabled
+                    MainActivity.backgroundWanted = false;
+                    i("Warnings Wanted", "" + MainActivity.backgroundWanted);
                 }
             }
         });
@@ -219,10 +233,11 @@ public class settings extends AppCompatActivity {
 
     }
 
-    public void saveSettings() {
+    public static void saveSettings() {
         i("Settings", "Saving Settings");
 
         ed.putBoolean("warningsWanted", MainActivity.warningsWanted).apply();
+        ed.putBoolean("backgroundWanted", MainActivity.backgroundWanted).apply();
         ed.putInt("maxTime", MainActivity.maxTime).apply();
 
 
@@ -231,6 +246,8 @@ public class settings extends AppCompatActivity {
     public static void loadSettings() {
         MainActivity.maxTime = sharedPreferences.getInt("maxTime", 1500);
         MainActivity.warningsWanted = sharedPreferences.getBoolean("warningsWanted", true);
+        MainActivity.backgroundWanted = sharedPreferences.getBoolean("backgroundWanted", false);
+
     }
 
     public void playVideoInstructions(View view) {
@@ -244,5 +261,6 @@ public class settings extends AppCompatActivity {
         i("Settings", "On Pause");
         saveSettings();
         saveSetups();
+        finish();
     }
 }
