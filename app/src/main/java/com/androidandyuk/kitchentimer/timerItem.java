@@ -11,7 +11,7 @@ import static com.androidandyuk.kitchentimer.MainActivity.timeViewStyle;
  */
 
 public class timerItem implements Comparable<timerItem> {
-    private String name;
+    String name;
     long milliSeconds;
     long finishBy;
     long finishByLeft;

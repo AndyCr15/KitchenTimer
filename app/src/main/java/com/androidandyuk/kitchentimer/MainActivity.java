@@ -18,12 +18,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -43,9 +45,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+
 import static com.androidandyuk.kitchentimer.R.drawable.pause;
 import static com.androidandyuk.kitchentimer.R.id.itemName;
 import static com.androidandyuk.kitchentimer.settings.loadSettings;
+import static com.androidandyuk.kitchentimer.timerItem.timeInMinutes;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -118,7 +122,9 @@ public class MainActivity extends AppCompatActivity {
     public static SharedPreferences sharedPreferences;
     public static SharedPreferences.Editor ed;
 
-    // for persisten notification
+    static MyItemAdapter myAdapter;
+    
+    // for persistent notification
     NotificationCompat.Builder mBuilder;
     NotificationManager mNotificationManager;
     boolean firstTime;
@@ -155,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         itemInfo = findViewById(R.id.ItemInfo);
-        itemInfo.animate().translationY(-500f).setDuration(50);
+        itemInfo.animate().translationY(-200f).setDuration(50);
         editOrDelete = findViewById(R.id.editOrDelete);
 
         itemListView = (ListView) findViewById(R.id.itemListView);
@@ -166,10 +172,10 @@ public class MainActivity extends AppCompatActivity {
         nextAlarmText = (TextView) findViewById(R.id.nextAlarmText);
 
         itemTimeView = (TextView) findViewById(R.id.itemTime);
-        itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
+        itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000, 0));
 
         itemFinishView = (TextView) findViewById(R.id.finishTime);
-        itemFinishView.setText(timerItem.timeInMinutes((long) finishBy, timeViewStyle));
+        itemFinishView.setText(timeInMinutes((long) finishBy, timeViewStyle));
 
         buttonBefore = (Button) findViewById(R.id.buttonBefore);
         buttonAfter = (Button) findViewById(R.id.buttonAfter);
@@ -189,9 +195,9 @@ public class MainActivity extends AppCompatActivity {
         loadSettings();
         invalidateOptionsMenu();
 
-        ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
+        myAdapter = new MyItemAdapter(itemList);
 
-        itemListView.setAdapter(arrayAdapter);
+        itemListView.setAdapter(myAdapter);
 
         itemListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
@@ -262,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
                 if (itemTime == 0) {
                     itemTime = 10;
                 }
-                itemTimeView.setText("TIMER : " + timerItem.timeInMinutes((long) itemTime * 1000, timeViewStyle));
+                itemTimeView.setText("TIMER : " + timeInMinutes((long) itemTime * 1000, 0));
             }
 
             @Override
@@ -282,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
 //                Log.i("Finish SeekBar value", Integer.toString(progress));
                 // make 10 the minimum
                 finishBy = ((progress / 10) * 10);
-                itemFinishView.setText("CUSHION : " + timerItem.timeInMinutes((long) finishBy * 1000, timeViewStyle));
+                itemFinishView.setText("CUSHION : " + timeInMinutes((long) finishBy * 1000, 0));
             }
 
             @Override
@@ -295,6 +301,62 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    private class MyItemAdapter extends BaseAdapter {
+        public List<timerItem> itemDataAdapter;
+
+        public MyItemAdapter(List<timerItem> itemDataAdapter) {
+            this.itemDataAdapter = itemDataAdapter;
+        }
+
+        @Override
+        public int getCount() {
+            return itemDataAdapter.size();
+        }
+
+        @Override
+        public String getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            LayoutInflater mInflater = getLayoutInflater();
+            View myView = mInflater.inflate(R.layout.timer_items_listview, null);
+
+            final timerItem s = itemDataAdapter.get(position);
+
+            TextView itemTime = (TextView) myView.findViewById(R.id.itemTime);
+            itemTime.setText(timeInMinutes(s.milliSecondsLeft, 0));
+
+
+            TextView item = (TextView) myView.findViewById(R.id.item);
+            String itemName = s.name;
+            if (s.isPauseTimer()) {
+                itemName += " ||";
+            }
+            item.setText(itemName);
+
+            TextView finish = (TextView) myView.findViewById(R.id.finish);
+            finish.setText("");
+            if (s.finishByLeft>0) {
+                finish.setText("With " + timeInMinutes(s.finishByLeft, 0) + " left");
+            }
+
+            TextView before = (TextView) myView.findViewById(R.id.before);
+            before.setText("");
+            if(s.nextItem != null) {
+                before.setText("Before " + s.nextItem.getName());
+            }
+            return myView;
+        }
+
     }
 
     public void timerButtonPressed(View view) {
@@ -365,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (!mainTimerIsPaused) {
             Log.i("Timer started : ", "" + Long.valueOf(longestTimer) / 1000);
-            soundAlarm("Timer started : " + timerItem.timeInMinutes(longestTimer, timeViewStyle), 0);
+            soundAlarm("Timer started : " + timeInMinutes(longestTimer, timeViewStyle), 0);
         }
 
         Log.i("Main Timer", "Setting Pause as False");
@@ -390,17 +452,17 @@ public class MainActivity extends AppCompatActivity {
                     mainTimerView = longestTimer;
                 }
 
-                timerButton.setText("Total time " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                timerButton.setText("Total time " + timeInMinutes(mainTimerView, timeViewStyle));
                 mainTimerView -= 250;
 
                 // if the timer is running with more than one alarm left, show the window for the next alarm
                 if (nextLongestTimer > 0) {
                     nextAlarm.setVisibility(View.VISIBLE);
-                    nextAlarmText.setText("Time until\nnext alarm\n" + timerItem.timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle));
-                    updateNotification("Next Alarm in " + timerItem.timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle) + " - All done in " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                    nextAlarmText.setText("Time until\nnext alarm\n" + timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle));
+                    updateNotification("Next Alarm in " + timeInMinutes(mainTimerView - nextLongestTimer, timeViewStyle) + " - All done in " + timeInMinutes(mainTimerView, timeViewStyle));
                 } else {
                     nextAlarm.setVisibility(View.INVISIBLE);
-                    updateNotification("All done in " + timerItem.timeInMinutes(mainTimerView, timeViewStyle));
+                    updateNotification("All done in " + timeInMinutes(mainTimerView, timeViewStyle));
                 }
 
 
@@ -415,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
                     if ((mainTimerView == item.getTotalTime()) && (!item.hasStarted)) {
                         Log.i("Starting New Item", "" + item.getName());
                         //start a new timer up, send the message
-                        soundAlarm("Put " + item.getName() + " in for " + timerItem.timeInMinutes(item.milliSeconds, timeViewStyle) + item.note, 1);
+                        soundAlarm("Put " + item.getName() + " in for " + timeInMinutes(item.milliSeconds, timeViewStyle) + item.note, 1);
                         item.hasStarted = true;
                     }
 
@@ -701,8 +763,9 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        ArrayAdapter<timerItem> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, itemList);
-        itemListView.setAdapter(arrayAdapter);
+        myAdapter = new MyItemAdapter(itemList);
+        itemListView.setAdapter(myAdapter);
+
     }
 
     public void queueItem(View view) {

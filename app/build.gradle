@@ -7,8 +7,8 @@ android {
         applicationId "com.androidandyuk.kitchentimer"
         minSdkVersion 16
         targetSdkVersion 25
-        versionCode 18
-        versionName "v1.3"
+        versionCode 19
+        versionName "v1.3.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -32,9 +32,5 @@ dependencies {
     compile 'com.google.firebase:firebase-ads:10.0.1'
     testCompile 'junit:junit:4.12'
 }
-
-
-
-
 
 apply plugin: 'com.google.gms.google-services'
