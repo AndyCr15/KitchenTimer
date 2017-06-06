@@ -7,8 +7,8 @@ android {
         applicationId "com.androidandyuk.kitchentimer"
         minSdkVersion 16
         targetSdkVersion 25
-        versionCode 19
-        versionName "v1.3.1"
+        versionCode 21
+        versionName "v1.3.3"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -28,8 +28,9 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:25.3.1'
-    compile 'com.google.firebase:firebase-core:10.0.1'
-    compile 'com.google.firebase:firebase-ads:10.0.1'
+    compile 'com.google.firebase:firebase-core:10.2.6'
+    compile 'com.google.firebase:firebase-ads:10.2.6'
+    compile 'com.google.firebase:firebase-crash:10.2.6'
     testCompile 'junit:junit:4.12'
 }
 

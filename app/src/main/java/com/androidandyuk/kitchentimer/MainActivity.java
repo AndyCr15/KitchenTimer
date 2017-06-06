@@ -402,7 +402,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 1, intent, 0);
         if (firstTime) {
-            mBuilder.setSmallIcon(android.R.drawable.sym_def_app_icon)
+            mBuilder.setSmallIcon(R.drawable.kitchen_timer_icon)
                     .setContentIntent(pendingIntent)
                     .setContentTitle("Multi Timer")
                     .setOnlyAlertOnce(true);
